@@ -15,3 +15,8 @@
 * 完成“2022-08-15 第一次课”的视频观看,学习 所有权与结构化数据
 * 阅读 The Rust Programming Language 第2、3章，和 The Rustlings Course 中的相关内容。
 * 整理并完成 rust语言"基本语法"部分的笔记
+
+## 2022.11.04
+
+* 阅读 The Rust Programming Language 第4章，和 The Rustlings Course相关内容
+* 整理并完成 rust语言"所有权"部分的笔记
