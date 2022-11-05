@@ -277,7 +277,7 @@
 
 * 用单引号`''`声明 `char` 字面量
 
-* 采用Unicode 编码，大小为 4 bytes
+* Unicode 类型, 长度为4字节
 
   * 所以人直觉上的 “字符” 可能与 Rust 中的 `char` 并不符合
 
@@ -823,11 +823,14 @@
 
 * 切片是一种<u>特殊形态的引用</u>，表示引用序列中的一个片段
   * 所以没有引用对象的所有权
+  
 * 构造语法
-  * `&x[s..t]` ，x为序列名，其中 s 和 t 还可以根据情况省略
+  * `&x[s..t]` 
+    * x为序列名
+    * 右半开区间其中 s 和 t 还可以根据情况省略
   * 可变性以及引用的约束条件, 对切片同样适用
-
-* 字符串String的slice: &str
+  
+* 字符串String的slice: `&str`
 
   ```rust
   # fn main() {
@@ -839,6 +842,380 @@
 
   ![image-20221105032154005](C:\Users\11731\AppData\Roaming\Typora\typora-user-images\image-20221105032154005.png)
 
-  * 字符串字面值就是 slice，类型 `&str`
-    * 它是一个指向二进制程序特定位置的 slice。
-    * 这也就是为什么字符串字面值是不可变的；&str 是一个不可变引用
+  * 字符串切片：`&str`
+    * 另一种写法：`&[u8]`
+    * 字符串字面值类型就是 `&str`
+      * 它是一个指向二进制程序特定位置的 slice。
+      * 这也就是为什么字符串字面值是不可变的；&str 是一个不可变引用
+
+# 5.结构化数据
+
+* 复合类型：
+
+  * 顾名思义，复合类型是由其它类型<u>组合</u>而成的
+
+  * 基本类型的局限性：**无法从更高的抽象层次去简化代码**，复合类型可以解决这个问题
+  * 结构体就是复合类型的一种
+
+## 1.字符串 `String`
+
+### 1）基本概念
+
+* 逻辑概念：由字符组成的连续集合
+
+* Rust 在<u>语言级别</u>，只有一种字符串类型： `str`
+
+  * 通常是以引用类型出现：`&str`，即字符串切片
+
+* 在标准库里，还有多种不同用途的字符串类型，其中使用最广的即是 `String` 类型
+
+  * `str` 类型是硬编码进可执行文件，也无法被修改
+  * `String` 则是一个可增长、可改变且具有所有权的 UTF-8 编码字符串
+    * 对 `String` 取引用，还是 `&str`
+
+  * 当 Rust 用户提到字符串时，往往指的就是 `String`类型和 `&str` 字符串切片类型，这两个类型都是 UTF-8 编码
+    * UTF-8编码
+      * 字符串中，每个字符都是 **UTF-8** 编码，<u>长度不固定</u>，为 1~4B
+      * 跟 `char` 不同，char是 Unicode 类型，占据 4B
+      * 有助于大幅降低字符串所占用的内存空间
+
+* 除了 `String` 类型的字符串，Rust 的标准库还提供了其他类型的字符串，例如 `OsString`， `OsStr`， `CsString` 和` CsStr` 等
+
+### 2）字符串索引访问字符
+
+* Rust不允许字符串索引 
+
+  ```rust
+  let s1 = String::from("hello");
+  let h = s1[0];	//error
+  ```
+
+* 原因
+
+  * UTF-8变长，取单个字节通常无意义
+  * 因为索引操作，我们总是期望它的性能表现是 O(1)，然而对于 `String` 类型来说，无法保证这一点，因为 Rust 可能需要从 0 开始去遍历字符串来定位合法的字符
+
+### 3）字符串切片 `&str`
+
+* 字符串切片是非常危险的操作，因为切片的索引是通过字节来进行
+
+* 需要程序员保证，索引的字节刚好落在<u>字符的边界上</u>，否则会造成程序崩溃
+
+* 如中文，UTF-8中为3字节编码：
+
+  ```rust
+  let hello = "中国人";
+  let s = &hello[0..2];	//会直接造成崩溃
+  ```
+
+### 4）操作字符串
+
+* 对于可变字符串 `String` ,下面介绍 Rust 字符串的修改，添加，删除等常用方法
+
+* 追加 Push
+
+  * 使用 `push()` 方法, 在字符串<u>尾部</u>追加<u>字符</u> `char`
+
+  * 使用 `push_str()` 方法，在字符串<u>尾部</u>追加<u>字符串字面量</u>
+
+  * 说明
+
+    * 都是在<u>原有的字符串</u>上追加，并不会返回新的字符串
+    * 由于要修改原来的字符串，字符串必须是<u>可变的</u>，即字符串变量必须由 `mut` 关键字修饰
+
+    ```rust
+    fn main() {
+        let mut s = String::from("Hello ");
+        s.push('r');
+        println!("追加字符 push() -> {}", s);
+    
+        s.push_str("ust!");
+        println!("追加字符串 push_str() -> {}", s);
+    }
+    ```
+
+* 插入 Insert
+
+  * 使用 `insert()` 方法, 插入单个字符 `char`
+
+  * `insert_str()` 方法, 插入字符串字面量
+
+  * 说明
+
+    * 需要传入两个参数
+      * 第一个参数是字符（串）插入位置的索引 (把后面的往后挤)
+        * 索引从 0 开始计数，如果越界则会发生错误
+      * 第二个参数是要插入的字符（串），
+    * 由于字符串插入操作要修改原来的字符串，则该字符串必须是<u>可变</u>的，即字符串变量必须由 `mut` 关键字修饰
+
+    ```rust
+    fn main() {
+        let mut s = String::from("Hello rust!");
+        s.insert(5, ',');
+        println!("插入字符 insert() -> {}", s);
+        s.insert_str(6, " I like");
+        println!("插入字符串 insert_str() -> {}", s);
+    }
+    ```
+
+* 替换 Replace
+
+  * 把字符串中的某个字符串替换成其它的字符串
+
+  * `replace()` 方法：
+
+    * 可适用于 `String` 和 `&str` 类型
+    * 接收两个参数
+      * 第一个参数是要被替换的字符串
+      * 第二个参数是新的字符串
+    * 说明
+      * 该方法会替换<u>所有匹配到</u>的字符串。
+      * 该方法是返回一个<u>新的字符串</u>，而不是操作原来的字符串
+
+    ```rust
+    fn main() {
+        let string_replace = String::from("I like rust. Learning rust is my favorite!");
+        let new_string_replace = string_replace.replace("rust", "RUST");
+        dbg!(new_string_replace);
+    }
+    ```
+
+  * `replacen()` 方法
+
+    * 可适用于 `String` 和 `&str` 类型
+    * 接收三个参数
+      * 前两个参数与 `replace()` 方法一样
+      * 第三个参数是替换的个数
+    * 说明：
+      * 该方法是返回一个<u>新的字符串</u>，而不是操作原来的字符串
+
+    ```rust
+    fn main() {
+        let string_replace = "I like rust. Learning rust is my favorite!";
+        let new_string_replacen = string_replace.replacen("rust", "RUST", 1);
+        dbg!(new_string_replacen);
+    }
+    ```
+
+  * `replace_range` 方法
+
+    * 仅适用于 `String` 类型
+
+    * 接收两个参数
+
+      * 第一个参数是要替换字符串的范围（Range）
+      * 第二个参数是新的字符串
+
+    * 说明
+
+      * 该方法是直接操作<u>原来的字符串</u>，不会返回新的字符串。
+      * 该方法需要使用 `mut` 关键字修饰
+
+      ```rust
+      fn main() {
+          let mut string_replace_range = String::from("I like rust!");
+          string_replace_range.replace_range(7..8, "R");
+          dbg!(string_replace_range);
+      }
+      ```
+
+* 删除 Delete
+
+  * 都仅适用于 `String` 类型
+
+  * `pop()` 
+
+    * 删除并返回字符串的<u>最后一个字符</u>
+
+    * 该方法是直接操作原来的字符串
+
+      * 需要 `mut` 类型
+
+    * 存在返回值，其返回值是一个 `Option` 类型，如果字符串为空，则返回 `None`
+
+      ```rust
+      fn main() {
+          let mut string_pop = String::from("rust pop 中文!");
+          let p1 = string_pop.pop();
+          let p2 = string_pop.pop();
+          dbg!(p1);
+          dbg!(p2);
+          dbg!(string_pop);
+      }
+      ```
+
+  * `remove()` 
+
+    * 删除并返回字符串中<u>指定位置的字符</u>
+
+    * 该方法是直接操作原来的字符串
+
+      * 需要 `mut` 类型
+
+    * 只接收一个参数，表示该<u>字符起始索引</u>位置
+
+    * 存在返回值，其返回值是删除位置的字符串
+
+    * 是按照<u>字节</u>来处理字符串的
+
+      * 如果参数所给的位置不是合法的字符边界，则会发生错误
+
+      ```rust
+      fn main() {
+          let mut string_remove = String::from("测试remove方法");
+          println!(
+              "string_remove 占 {} 个字节",
+              std::mem::size_of_val(string_remove.as_str())
+          );
+          // 删除第一个汉字
+          string_remove.remove(0);
+          // 下面代码会发生错误
+          // string_remove.remove(1);
+          // 直接删除第二个汉字
+          // string_remove.remove(3);
+          dbg!(string_remove);
+      }
+      ```
+
+  * `truncate()` 
+
+    * 删除字符串中从<u>指定位置开始到结尾</u>的全部字符
+
+    * 该方法是直接操作原来的字符串
+
+      * 需要 `mut` 类型
+
+    * 只接收一个参数，表示该<u>字符起始索引</u>位置
+
+    * 无返回值
+
+    * 是按照<u>字节</u>来处理字符串的
+
+      * 如果参数所给的位置不是合法的字符边界，则会发生错误
+
+      ```rust
+      fn main() {
+          let mut string_truncate = String::from("测试truncate");
+          string_truncate.truncate(3);
+          dbg!(string_truncate);
+      }
+      ```
+
+  * `clear()`
+
+    * 清空字符串。调用后，删除字符串中的所有字符
+
+      * 相当于 `truncate()` 方法参数为 0 的时候
+
+    * 该方法是直接操作原来的字符串
+
+      * 需要 `mut` 类型
+
+      ```rust
+      fn main() {
+          let mut string_clear = String::from("string clear");
+          string_clear.clear();
+          dbg!(string_clear);
+      }
+      ```
+
+* 连接 Concatenate
+
+  * 使用 `+` 或者 `+=` 
+
+    * 要求右边的参数必须为字符串的切片引用（Slice）类型
+
+      * 不能直接传递 `String` 类型
+
+    * 都是返回一个新的字符串。
+
+      ```rust
+      fn main() {
+          let string_append = String::from("hello ");
+          let string_rust = String::from("rust");
+          // &string_rust会自动解引用为&str
+          let result = string_append + &string_rust;
+          let mut result = result + "!";
+          result += "!!!";
+      
+          println!("连接字符串 + -> {}", result);
+      }
+      ```
+
+    * 当调用 + 的操作符时，相当于调用了 std::string 标准库中的 `add()` 方法
+
+      * S 调用 `add()` 方法后，会丧失所有权
+
+      ```rust
+      fn add(self, s: &str) -> String
+      ```
+
+  * 使用 `format!` 
+
+    * 适用于 `String` 和 `&str`
+
+      ```rust
+      fn main() {
+          let s1 = "hello";
+          let s2 = String::from("rust");
+          let s = format!("{} {}!", s1, s2);
+          println!("{}", s);
+      }
+      ```
+
+* 字符串转义
+
+  * 可以通过转义的方式 `\` 输出 ASCII 和 Unicode 字符
+
+* 操作 UTF-8 字符串
+
+  * `chars()` 方法
+
+    * 以 Unicode 字符的方式遍历字符串
+
+      ```rust
+      for c in "中国人".chars() {
+          println!("{}", c);
+      }
+      ```
+
+  * `bytes()` 方法
+
+    * 返回字符串的<u>底层字节数组</u>表现形式
+
+      ```rust
+      for b in "中国人".bytes() {
+          println!("{}", b);
+      }
+      /*输出
+      228
+      184
+      173
+      229
+      155
+      189
+      228
+      186
+      186 */
+      ```
+
+  * 获取子串
+
+    * 想要准确的从 UTF-8 字符串中获取子串是较为复杂的事情
+    * 使用标准库你是做不到的。 你需要在 `crates.io` 上搜索 `utf8` 来寻找想要的功能
+
+### 5）深入字符串
+
+* `str` 
+  * 字符串字面值，在编译时就知道其内容，最终字面值文本被直接硬编码进可执行文件中
+  * 这使得字符串字面值快速且高效，这主要得益于字符串字面值的不可变性
+* `String` 
+  * 为了支持一个可变、可增长的文本片段
+  * 需要在<u>堆</u>上分配一块在编译时未知大小的内存来存放内容，这些都是在程序运行时完成的
+    * 首先向操作系统请求内存来存放 `String` 对象
+      * 由 `String::from` 完成，它创建了一个全新的 `String`
+    * 在使用完成后，将内存释放，归还给操作系统
+      * 在所属变量离开作用域时，自动调用 `drop` 函数，释放内存
+      * 比如，一般在 `}` 处自动调用 `drop`。
+
+## 2.元组

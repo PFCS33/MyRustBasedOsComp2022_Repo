@@ -20,3 +20,8 @@
 
 * 阅读 The Rust Programming Language 第4章，和 The Rustlings Course相关内容
 * 整理并完成 rust语言"所有权"部分的笔记
+
+## 2022.11.05
+
+* 阅读 The Rustlings Course 字符串和切片相关内容
+* 整理并完成 rust语言"字符串"部分的笔记
