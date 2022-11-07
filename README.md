@@ -30,3 +30,4 @@
 
 * 阅读  The Rustlings Course 符合类型、流程控制、模式匹配、方法 章节
 * 整理并完成 rust语言上述部分的笔记
+* 完成rustlings：variables，functions，if  三部分
