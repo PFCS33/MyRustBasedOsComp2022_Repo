@@ -25,3 +25,8 @@
 
 * 阅读 The Rustlings Course 字符串和切片相关内容
 * 整理并完成 rust语言"字符串"部分的笔记
+
+## 2022.11.07
+
+* 阅读  The Rustlings Course 符合类型、流程控制、模式匹配、方法 章节
+* 整理并完成 rust语言上述部分的笔记

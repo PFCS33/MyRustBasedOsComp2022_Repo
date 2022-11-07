@@ -848,9 +848,9 @@
       * 它是一个指向二进制程序特定位置的 slice。
       * 这也就是为什么字符串字面值是不可变的；&str 是一个不可变引用
 
-# 5.结构化数据
+# 5.复合类型
 
-* 复合类型：
+* 概述
 
   * 顾名思义，复合类型是由其它类型<u>组合</u>而成的
 
@@ -1219,3 +1219,1268 @@
       * 比如，一般在 `}` 处自动调用 `drop`。
 
 ## 2.元组
+
+* 由多种类型组合到一起形成的
+  * <u>固定长度的、有序的、异构</u>的列表类型
+
+* 创建语法 `()`
+
+  ```rust
+  fn main() {
+      let tup: (i32, f64, u8) = (500, 6.4, 1);
+  }
+  ```
+
+* 获取元素值
+
+  * 可以使用模式匹配或者 `.` 操作符来获取元组中的值
+
+  * 模式匹配
+
+    * 解构：用<u>同样的形式</u>把一个复杂对象中的值匹配出来
+
+    * <u>一次性</u>把元组中的值<u>全部或者部分</u>获取出来
+
+      ```rust
+      fn main() {
+          let tup = (500, 6.4, 1);
+      
+          let (x, y, z) = tup;
+      
+          println!("The value of y is: {}", y);
+      }
+      ```
+
+      * 元组中对应的值会绑定到变量 x， y， z上
+
+  * 用 `.` 访问
+
+    * 访问某个特定元素
+
+    * 元组的索引从 0 开始
+
+      ```rust
+      fn main() {
+          let x: (i32, f64, u8) = (500, 6.4, 1);
+      
+          let five_hundred = x.0;
+      
+          let six_point_four = x.1;
+      
+          let one = x.2;
+      }
+      ```
+
+## 3.结构体 `struct`  
+
+### 1) 概述
+
+* 一个更高级的数据结构，提供更高层次的抽象功能
+* 由多种类型组合而成，但比元组更加灵活和强大
+  * 可以为内部的每个字段起一个富有含义的名称
+  * 无需依赖这些字段的顺序来访问和解析它们
+
+### 2) 语法
+
+* 定义结构体
+
+  * 关键字 `struct` 定义
+  * 结构体 `名称`
+  * 有名字的结构体 `字段 field` (也可以没有名称)
+
+  ```rust
+  struct User {
+      active: bool,
+      username: String,
+      email: String,
+      sign_in_count: u64,
+  }
+  ```
+
+* 创建结构体实例
+
+  * 以结构体的名字开头，然后在`{}`中使用 `key: value` 键-值对的形式提供字段
+  * 注意
+    * 初始化实例时，<u>每个字段</u>都必须要进行初始化
+    * 初始化时的字段顺序不需要和结构体定义时的顺序一致
+
+  ```rust
+  let user1 = User {
+          email: String::from("someone@example.com"),
+          username: String::from("someusername123"),
+          active: true,
+          sign_in_count: 1,
+      };
+  ```
+
+* 简化结构体创建
+
+  * 可简化如下形式的结构体创建函数
+
+    * 当函数参数和结构体字段同名时，可以直接使用缩略的方式进行初始化
+
+    ```rust
+    fn build_user(email: String, username: String) -> User {
+        User {
+            email,
+            username,
+            active: true,
+            sign_in_count: 1,
+        }
+    }
+    ```
+
+  * 结构体更新语法
+
+    * Rust支持根据已有的<u>同类型结构体实例</u>，创建新的结构体实例，的简化语法
+
+    * `.. user1` 
+
+      * `..` 语法表明凡是我们没有显式声明的字段，全部从 `user1` 中自动获取
+      * `..user1` 必须在结构体的<u>尾部使用</u>
+
+      ```rust
+      let user2 = User {
+              email: String::from("another@example.com"),
+              ..user1
+          };
+      ```
+
+    * 跟赋值语句 `=` 非常相像，如果field不是copy特性，将会发生<u>所有权转移</u>
+
+      * 作为结果，`user1` 对应的字段将无法再被使用
+      * 但其他所有权没转移的其它字段，还能被继续使用
+
+      ```rust
+      let user1 = User {
+          email: String::from("someone@example.com"),
+          username: String::from("someusername123"),
+          active: true,
+          sign_in_count: 1,
+      };
+      let user2 = User {
+          active: user1.active,
+          username: user1.username,
+          email: String::from("another@example.com"),
+          sign_in_count: user1.sign_in_count,
+      };
+      println!("{}", user1.active);
+      // 下面这行会报错
+      println!("{:?}", user1);
+      ```
+
+* 访问结构体字段
+
+  * 通过 `.` 操作符即可访问结构体实例内部的字段值，也可以修改它们
+
+    * 必须要将<u>结构体实例</u>声明为 `mut`，才能修改其中的字段
+
+      * 结构体没有<u>域级</u>的可变性控制
+        * 但可以通过 Cell 类型来实现，后面会讲
+      * 可变性是变量绑定的属性，跟<u>类型无关</u>（即没有在定义 `struct` 时加入`mut` 这种语法）
+
+      ```rust
+      struct Point {
+      x: i32,
+      mut y: i32, // Illegal!
+      }
+      ```
+
+### 3) 结构体的内存排列
+
+* 如下代码的内存排列如图：
+  * `File` 结构体两个字段 `name` 和 `data` 分别拥有底层两个 [u8] 数组的所有权
+
+```rust
+#[derive(Debug)]
+ struct File {
+   name: String,
+   data: Vec<u8>,
+ }
+
+ fn main() {
+   let f1 = File {
+     name: String::from("f1.txt"),
+     data: Vec::new(),
+   };
+
+   let f1_name = &f1.name;
+   let f1_length = &f1.data.len();
+
+   println!("{:?}", f1);
+   println!("{} is {} bytes long", f1_name, f1_length);
+ }
+```
+
+![image-20221106224023274](C:\Users\11731\AppData\Roaming\Typora\typora-user-images\image-20221106224023274.png)
+
+### 4) 特别结构体
+
+* 元组结构体
+
+  * field 没有名称的结构体
+
+    * 种结构体长得很像元组，因此被称为元组结构体
+    * 在你希望有一个整体名称，但是又不关心里面字段的名称时将非常有用
+
+  * 可以像元组那样通过数字来访问域 ` x.0`
+
+    ```rust
+    struct Color(i32, i32, i32);
+    struct Point(i32, i32, i32);
+    
+    let black = Color(0, 0, 0);
+    let origin = Point(0, 0, 0);
+    ```
+
+  * 可用来创建新的类型，而不仅仅只是一个别名
+
+    * 被称为“新类型”模式 (“newtype”pattern)
+    * 两种类型在结构上是相同的，但是并不等价（不是同一种类型）
+
+    ```rust
+    // Not equatable
+    struct Meters(i32);
+    struct Yards(i32);
+    // May be compared using `==`, added with `+`, etc.
+    type MetersAlias = i32;
+    type YardsAlias = i32;
+    ```
+
+* 单位元结构体(Unit-like Struct)
+
+  * 没有任何字段和属性的空结构体
+    * 如果你定义一个类型，但是不关心该类型的内容, <u>只关心它的行为时</u>，就可以使用
+  * 这种结构体也是可以实例化的
+
+  ```rust
+  struct AlwaysEqual;
+  
+  let subject = AlwaysEqual;
+  
+  // 我们不关心 AlwaysEqual 的字段数据，只关心它的行为，因此将它声明为单元结构体，然后再为它实现某个特征
+  impl SomeTrait for AlwaysEqual {
+  	//...
+  }
+  ```
+
+### 5) 结构体数据的所有权
+
+* 若像在结构体中定义引用类型（从其它对象借用数据），就必须加上生命周期，确保结构体的作用范围要比它所借用的数据的作用范围要小。
+  * 否则报错
+
+### 6) 打印结构体的信息
+
+* 在结构体定义上方，添加 `#[derive(Debug)] `，便可在 `println!()` 中使用格式符 `{:?}` ，用Rust提供的默认形式，打印结构体信息	
+
+  * `derive` 属性
+    * 被 `derive` 标记的对象会<u>自动实现对应的默认特征代码</u>，继承相应的功能
+    * 可应用于结构体和枚举定义
+
+  ```rust
+  #[derive(Debug)]
+  struct Rectangle {
+      width: u32,
+      height: u32,
+  }
+  
+  fn main() {
+      let rect1 = Rectangle {
+          width: 30,
+          height: 50,
+      };
+  
+      println!("rect1 is {:?}", rect1);
+  }
+  /* 输出如下
+  rect1 is Rectangle { width: 30, height: 50 }
+  */
+  ```
+
+  * 若想要更好的输出表现，使用 `{:#?}` 格式符，输出如下：
+
+  ```rust
+  rect1 is Rectangle {
+      width: 30,
+      height: 50,
+  }
+  ```
+
+  * 如果还是不满足，自己实现 `Display` 特征
+
+* 还有一个简单的输出 debug 信息的方法，那就是使用 `dbg!` 宏
+
+  * 会拿走<u>表达式</u>的所有权，然后打印出相应的<u>文件名、行号等 debug 信息</u>，当然还有我们需要的<u>表达式的求值结果</u>
+  * 最终还会把表达式值的<u>所有权返回</u>
+  * `dbg!` 输出到标准错误输出 `stderr`，而 `println!` 输出到标准输出 `stdout`
+
+  ```rust
+  #[derive(Debug)]
+  struct Rectangle {
+      width: u32,
+      height: u32,
+  }
+  
+  fn main() {
+      let scale = 2;
+      let rect1 = Rectangle {
+          width: dbg!(30 * scale),
+          height: 50,
+      };
+  
+      dbg!(&rect1);
+  }
+  /* 输出如下
+  [src/main.rs:10] 30 * scale = 60
+  [src/main.rs:14] &rect1 = Rectangle {
+      width: 60,
+      height: 50,
+  } 
+  */
+  ```
+
+## 4.枚举
+
+### 1）概述
+
+* 枚举 (enum) 允许你通过<u>列举包含的所有可能的成员</u>来定义一个枚举类型 `enum`
+
+  * 是和类型 (sum type)，用来表示可以是<u>多选一</u>的数据
+  * 其成员成为 “变体”
+
+  ```rust
+  enum Resultish {
+  Ok,
+  Warning { code: i32, message: String },
+  Err(String)
+  }
+  ```
+
+### 2）语法
+
+* 定义
+
+  ```rust
+  enum PokerSuit {
+    Clubs,
+    Spades,
+    Diamonds,
+    Hearts,
+  }
+  ```
+
+* 创建实例
+
+  ```rust
+  let heart = PokerSuit::Hearts;
+  ```
+
+  * 枚举的变体存在于<u>枚举本身的名字空间</u>中
+    * `::` 操作符来访问 `PokerSuit` 下的变体
+    * 可以使用 `use PokerSuit::*` 把所有变体引入当前的名字空间
+
+### 3）更强的枚举类型
+
+* Rust 的枚举比 C/C++、Java 等语言中的枚举要强很多
+  * 任何类型的数据都可以放入枚举成员中
+    * 字符串、数值、结构体甚至另一个枚举
+    * 实现枚举成员“带值”，“带复合结构”的效果
+* 枚举的每种<u>变体</u> (variant) 可以为：
+  * 没有数据（单位元变体） 
+  * 有命名的数据域（结构体变体） 
+  * 有不命名的有序数据域（元组变体）
+* 例：
+
+```rust
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(String),
+    ChangeColor(i32, i32, i32),
+}
+
+fn main() {
+    let m1 = Message::Quit;
+    let m2 = Message::Move{x:1,y:1};
+    let m3 = Message::ChangeColor(255,255,0);
+}
+```
+
+* 上述枚举类型包含四个不同的成员
+  * `Quit` 没有任何关联数据
+  * `Move` 包含一个<u>匿名结构体</u>
+  * `Write` 包含一个 `String` 字符串
+  * `ChangeColor` 包含1个元组类型
+* 虽然可以使用结构类型，达到相同效果，但需定义四个不同类型的结构，无法作为一个同类型的整体使用和传参
+  * 而且从代码规范角度来看，枚举的实现更简洁，代码内聚性更强，不像结构体的实现，分散在各个地方
+
+### 4）`Option` 枚举：处理空值 `null` 
+
+* 概述
+
+  * 在其它编程语言中，往往都有一个 `null` 关键字。当你对这些 `null` 进行操作时，就会直接抛出**null 异常**，导致程序的崩溃，因此我们在编程时需要格外的小心去处理这些 `null` 空值
+  * Rust抛弃`null`，采用 `Option` 枚举变量来表述这种结果
+  * 
+
+* 定义
+
+  ```rust
+  enum Option<T> {
+      Some(T),
+      None,
+  }
+  ```
+
+  * 其中 `T` 是泛型参数
+    * `Some(T)` 表示该枚举成员的数据类型是 `T` 。即 `Some` 可以包含任何类型的数据。
+  * `Option<T>` 枚举是如此有用以至于它被包含在了 prelude 标准库中。它的成员 `Some` 和 `None` 也是如此
+    * 无需使用 `Option::` 前缀就可直接使用 `Some` 和 `None`
+
+* 示例
+
+  ```rust
+  let some_number = Some(5);
+  let some_string = Some("a string");
+  let absent_number: Option<i32> = None;
+  ```
+
+* 为什么 `Option<T>` 比`null` 好 ？
+
+  * 在 Rust 中，拥有一个像 `i8` 这样类型的值时，编译器<u>确保它总是有一个有效的值</u>，我们可以放心使用而无需做空值检查
+
+  * 为了使用一个<u>可能为空的值</u>，你必须要显式的将其放入对应类型的 `Option<T>` 中。
+
+    * 接着，当使用这个值时，必须明确的处理值为空的情况。
+    * 所以：只要一个值不是 `Option<T>` 类型，就 **可以** 安全的认定它的值不为空。
+    * 这是 Rust 的一个经过深思熟虑的设计决策，来限制空值的泛滥以增加 Rust 代码的安全性
+
+  * 什么时候处理空值：在对 `Option<T>` 进行 `T` 的运算之前, 必须将其转换为 `T`	
+
+    * 转换过程中，就可以对`None` 进行处理，必然能捕获空值
+    * 那么当有一个 `Option<T>` 的值时，如何从 `Some` 成员中取出 `T` 的值来使用它呢？
+      * `Option<T>` 枚举拥有大量用于各种情况的方法，可以查它的文档
+      * `match` 表达式，可以用来处理枚举的控制流结构
+        * 它会根据枚举的成员运行不同的代码，这些代码可以使用匹配到的值中的数据
+
+    ```rust
+    fn plus_one(x: Option<i32>) -> Option<i32> {
+        match x {
+            None => None,
+            Some(i) => Some(i + 1),
+        }
+    }
+    
+    let five = Some(5);
+    let six = plus_one(five);
+    let none = plus_one(None);
+    ```
+
+## 5.数组
+
+### 1）概述
+
+* 在 Rust 中，最常用的数组有两种，第一种是速度<u>很快但是长度固定</u>的 `array`，第二种是<u>可动态增长的但是有性能损耗</u>的 `Vector`
+* 规定：在本书中，我们称 `array` 为数组，`Vector` 为动态数组
+* 下面只讲数组 `array`
+
+### 2）三要素:
+
+*  长度固定，元素相同的类型，顺序线性排列
+* 千万注意，Rust的基本类型 `array` 是定长的
+
+### 3）实例化：用`[]`
+
+```rust
+//常规方法
+let a = [1, 2, 3, 4, 5];
+//简便方法
+let b = [3 ; 5]; //包含 5 个元素，初始化值都为 3
+```
+
+* 数组类型表示：`[T;n]`
+
+  * `i32` 是元素类型，分号后面的数字 `5` 是数组长度
+
+    ```rust
+    let a: [i32; 5] = [1, 2, 3, 4, 5];
+    ```
+
+### 4）访问元素
+
+* 可以通过索引`[]`的方式来访问存放其中的元素
+
+  ```rust
+  fn main() {
+      let a = [9, 8, 7, 6, 5];
+  
+      let first = a[0]; // 获取a数组第一个元素
+      let second = a[1]; // 获取第二个元素
+  }
+  ```
+
+* 越界访问
+
+  * 当你尝试使用索引访问元素时，Rust 将<u>检查</u>你指定的索引是否小于数组长度。
+  * 如果索引大于或等于数组长度，Rust 会出现 ***panic\***
+    * 编译器会检查越界访问，这种就是 Rust 的安全特性之一
+
+### 5）数组元素为非基础类型
+
+* 对于复杂类型的元素，不能用`[T;n]` 这种简便写法
+  * 因为本质上是在copy，而复杂类型没有深拷贝，会产生所有权问题
+* 调用`std::array::from_fn()`
+
+### 6）数组切片
+
+* 数组切片允许我们引用数组的一部分
+
+  ```rust
+  let a: [i32; 5] = [1, 2, 3, 4, 5];
+  
+  let slice: &[i32] = &a[1..3];
+  
+  assert_eq!(slice, &[2, 3]);
+  ```
+
+* 上面的数组切片 `slice` 的类型是`&[i32]`，与之对比，数组的类型是`[i32;5]`
+
+  * `[T;n]` 描述了一个数组的类型，而 `[T]` 描述了切片的类型， 因为切片是运行期的数据结构，它的长度无法在编译期得知，因此不能用 `[T;n]` 的形式去描述
+
+* 切片的特点
+
+  * 切片的长度可以与数组不同，并不是固定的，而是取决于你使用时指定的起始和结束位置
+  * 创建切片的代价非常小，因为切片只是针对底层数组的一个引用
+
+# 6.流程控制
+
+* `if` 分支控制
+
+  * 条件必须是 `bool` 值，Rust不会做隐式类型转换
+
+  * **`if` 语句块是表达式**，有返回值
+
+    * 要保证每个分支<u>返回的类型一样</u>，否则报错
+
+    ```rust
+    fn main() {
+        let condition = true;
+        let number = if condition {
+            5
+        } else {
+            6
+        };
+    
+        println!("The value of number is: {}", number);
+    }
+    ```
+
+* 使用 `else if` 来处理多重条件
+
+  * 可以将 `else if` 与 `if`、`else` 组合在一起实现更复杂的条件分支判断
+
+  * 有一点要注意，就算有多个分支能匹配，也只有第一个匹配的分支会被执行
+
+    ```rust
+    fn main() {
+        let n = 6;
+    
+        if n % 4 == 0 {
+            println!("number is divisible by 4");
+        } else if n % 3 == 0 {
+            println!("number is divisible by 3");
+        } else if n % 2 == 0 {
+            println!("number is divisible by 2");
+        } else {
+            println!("number is not divisible by 4, 3, or 2");
+        }
+    }
+    ```
+
+* 循环控制
+
+  * 在 Rust 语言中有三种循环方式：`for`、`while` 和 `loop`
+
+  * `for` 循环
+
+    * 由于 `for` 循环无需任何条件限制，也不需要通过索引来访问，因此是最安全也是最常用的
+
+    * 语法
+
+      * `for` 和 `in` 联动
+
+        ```rust
+        for 元素 in 集合 {
+          // 使用元素干一些你懂我不懂的事情
+        }
+        ```
+
+    * 注意
+
+      * 使用 `for` 时我们往往使用<u>集合的引用形式</u>，除非你不想在后面的代码中继续使用该集合
+
+        * 如果不使用引用的话，所有权会被转移（move）到 `for` 语句块中
+        * 当然对于实现了 `copy` 特征的数组而言，并不会把元素的所有权转移
+
+      * 如果想在循环中，**修改该元素**，可以使用 `mut` 关键字修饰引用
+
+        ```rust
+        for item in &container {
+          // ...
+        }
+        
+        for item in &mut collection {
+          // ...
+        }
+        ```
+
+      * 总结如下
+
+        ![image-20221107195839932](C:\Users\11731\AppData\Roaming\Typora\typora-user-images\image-20221107195839932.png)
+
+    * `_` 作为循环变量：只用于控制次数，不使用
+
+      * 在 Rust 中 `_` 的含义是忽略该值或者类型的意思
+
+      * 如果不使用 `_`，那么编译器会给你一个 `变量未使用的` 的警告
+
+        ```rust
+        for _ in 0..10 {
+          // ...
+        }
+        ```
+
+  * `while` 循环
+
+    ```rust
+    fn main() {
+        let mut n = 0;
+    
+        while n <= 5  {
+            println!("{}!", n);
+    
+            n = n + 1;
+        }
+        println!("我出来了！");
+    }
+    ```
+
+    * 在遍历集合元素时，`for` 并不会使用索引去访问数组，因此更安全也更简洁，同时避免 `运行时的边界检查`，性能更高
+
+  * `loop` 循环
+
+    * `loop` 就是一个简单的无限循环
+
+    * 你可以在内部实现逻辑通过 `break` 关键字来控制循环何时结束
+
+      * **break 可以单独使用，也可以带一个返回值**，有些类似 `return`
+
+    * **loop 是一个表达式**，因此可以返回一个值
+
+      ```rust
+      fn main() {
+          let mut counter = 0;
+      
+          let result = loop {
+              counter += 1;
+      
+              if counter == 10 {
+                  break counter * 2;
+              }
+          };
+      
+          println!("The result is {}", result);
+      }
+      ```
+
+  * `continue` 和 `break`
+
+    * 类似C++
+
+# 7.模式匹配
+
+* 用于为复杂的类型系统提供一个轻松的解构能力
+
+## 1. `match` 表达式
+
+* 通用形式
+
+  ```rust
+  match target {
+      模式1 => 表达式1,
+      模式2 => {
+          语句1;
+          语句2;
+          表达式2
+      },
+      _ => 表达式3
+  }
+  ```
+
+  * `match` 允许我们将一个值`target`与一系列的模式相比较，并根据相匹配的模式执行对应的代码
+
+* 说明
+
+  * `target` 
+    * 是一个表达式，其返回值可以是<u>任意类型</u>，只要能跟后面的分支中的模式匹配起来即可
+  * `match` 的分支
+    * 一个分支有两个部分：**一个模式和针对该模式的处理代码**
+      * `=>` 运算符将模式和将要运行的代码分开
+    * 不同分支之间使用逗号 `,` 分隔
+
+* 执行流程
+
+  * 当 `match` 表达式执行时，它将目标值 `target` <u>按顺序</u>依次与每一个分支的模式相比较
+  * 如果模式匹配了这个值，那么模式之后的代码将被执行。
+  * 如果模式并不匹配这个值，将继续执行下一个分支。
+
+* 例
+
+  ```rust
+  enum Coin {
+      Penny,
+      Nickel,
+      Dime,
+      Quarter,
+  }
+  
+  fn value_in_cents(coin: Coin) -> u8 {
+      match coin {
+          Coin::Penny =>  {
+              println!("Lucky penny!");
+              1
+          },
+          Coin::Nickel => 5,
+          Coin::Dime => 10,
+          Coin::Quarter => 25,
+      }
+  }
+  ```
+
+* 注意
+
+  * 穷尽匹配
+
+    * `match` 的匹配<u>必须要穷举出所有可能</u>，
+    * `_`  通配符
+      *  Rust 提供的一个特殊**模式**， 
+      * 通过将 `_` 其放置于其他分支后，`_` 将会匹配所有遗漏的值。（类似default）
+        * 不放在最后不会报错，但没意义
+
+  * `match` 也是一个表达式
+
+    * `match` 的每一个分支都是一个表达式。要求<u>所有分支的表达式</u>最终<u>返回值的类型必须相同</u>
+
+    * 匹配到的表达式的结果值，将作为整个 `match` 表达式的返回值
+
+      ```rust
+      enum IpAddr {
+         Ipv4,
+         Ipv6
+      }
+      
+      fn main() {
+          let ip1 = IpAddr::Ipv6;
+          let ip_str = match ip1 {
+              IpAddr::Ipv4 => "127.0.0.1",
+              _ => "::1",
+          };
+      
+          println!("{}", ip_str);
+      }
+      ```
+
+  * **X | Y**，类似逻辑运算符 `或`，代表该分支可以匹配 `X` 也可以匹配 `Y`，只要满足一个即可
+
+* 模式绑定
+
+  * 模式匹配的另外一个重要功能是从模式中<u>取出绑定的值</u>
+
+    * 不是copy特型，将会发生所有权转移
+
+    ```rust
+    enum Action {
+        Say(String),
+        MoveTo(i32, i32),
+        ChangeColorRGB(u16, u16, u16),
+    }
+    
+    fn main() {
+        let actions = [
+            Action::Say("Hello Rust".to_string()),
+            Action::MoveTo(1,2),
+            Action::ChangeColorRGB(255,255,0),
+        ];
+        for action in actions {
+            match action {
+                Action::Say(s) => {
+                    println!("{}", s);
+                },
+                Action::MoveTo(x, y) => {
+                    println!("point from (0, 0) move to ({}, {})", x, y);
+                },
+                Action::ChangeColorRGB(r, g, _) => {
+                    println!("change color into '(r:{}, g:{}, b:0)', 'b' has been ignored",
+                        r, g,
+                    );
+                }
+            }
+        }
+    }
+    ```
+
+## 2. `if let` 匹配
+
+* 只需要<u>单个匹配分支</u>时
+
+  ```rust
+  if let Some(3) = v {
+      println!("three");
+  }
+  ```
+
+* 还可以加 `else`
+
+* 还有个类似的 `while let`
+
+  * 作用是循环迭代直至匹配条件失败
+
+    ```rust
+    let mut v = vec![1, 2, 3];
+    while let Some(x) = v.pop() {
+    println!("{}", x);
+    }
+    ```
+
+## 3. `matches!` 宏
+
+* Rust 标准库中提供了一个非常实用的宏：`matches!`
+
+  * 它可以将一个表达式跟模式进行匹配，然后返回匹配的结果 `true` or `false`
+
+  ```rust
+  let bar = Some(4);
+  assert!(matches!(bar, Some(x) if x > 2));
+  ```
+
+## 4. 变量覆盖
+
+* 无论是 `match` 还是 `if let`，他们都可以在模式匹配时覆盖掉老的值，绑定新的值：同名覆盖
+
+  ```rust
+  fn main() {
+     let age = Some(30);
+     println!("在匹配前，age是{:?}",age);
+     if let Some(age) = age {
+         println!("匹配出来的age是{}",age);
+     }
+  
+     println!("在匹配后，age是{:?}",age);
+  }
+  /*输出如下
+  在匹配前，age是Some(30)
+  匹配出来的age是30 (被覆盖)
+  在匹配后，age是Some(30)
+  */
+  ```
+
+## 5. 解构 Option
+
+```rust
+fn plus_one(x: Option<i32>) -> Option<i32> {
+    match x {
+        None => None,
+        Some(i) => Some(i + 1),
+    }
+}
+
+let five = Some(5);
+let six = plus_one(five);
+let none = plus_one(None);
+```
+
+## 6. 模式
+
+### 1) 概述
+
+​	模式是 Rust 中的特殊语法，它用来匹配<u>类型中的结构和数据</u>
+
+* 它往往和 `match` 表达式联用，以实现强大的模式匹配能力
+* 一般由以下内容组合而成
+  * 字面值
+  * 解构的数组、枚举、结构体或者元组
+  * 变量
+  * 通配符
+  * 占位符
+
+### 2) 模式的应用
+
+* `match` 分支
+
+  * `match` 的每个分支就是一个**模式**
+  * 特殊的模式 `_`，来匹配剩余的所有情况
+
+  ```rust
+  match VALUE {
+      PATTERN => EXPRESSION,
+      PATTERN => EXPRESSION,
+      PATTERN => EXPRESSION,
+  }
+  ```
+
+* `if let` 分支
+
+  * 往往用于匹配一个模式，而忽略剩下的所有模式的场景
+
+    ```rust
+    if let PATTERN = SOME_VALUE {
+    	//...
+    }
+    ```
+
+* `while let` 条件循环
+
+  * 允许只要模式匹配就一直进行 `while` 循环
+
+    ```rust
+    // Vec是动态数组
+    let mut stack = Vec::new();
+    
+    // 向数组尾部插入元素
+    stack.push(1);
+    stack.push(2);
+    stack.push(3);
+    
+    // stack.pop从数组尾部弹出元素
+    while let Some(top) = stack.pop() {
+        println!("{}", top);
+    }
+    ```
+
+* `for` 循环
+
+  * 这里使用 `enumerate` 方法产生一个迭代器
+
+  * 该迭代器每次迭代会返回一个 `(索引，值)` 形式的元组，然后用 `(index,value)` 来匹配
+
+    ```rust
+    let v = vec!['a', 'b', 'c'];
+    
+    for (index, value) in v.iter().enumerate() {
+        println!("{} is at index {}", value, index);
+    }
+    ```
+
+* `let ` 语句
+
+  * 也是一种模式匹配：匹配的值绑定到对应变量上
+
+  * 在 Rust 中,**变量名也是一种模式**，只不过它比较朴素很不起眼
+
+    ```rust
+    let x = 5;
+    ```
+
+  * 模式和值的类型，必须相同，否则报错
+
+    ```rust
+    let (x, y, z) = (1, 2, 3);
+    //Error: let (x, y) = (1, 2, 3);
+    ```
+
+* 函数参数
+
+  * 函数参数也是模式
+
+    ```rust
+    fn print_coordinates(&(x, y): &(i32, i32)) {
+        println!("Current location: ({}, {})", x, y);
+    }
+    
+    fn main() {
+        let point = (3, 5);
+        print_coordinates(&point);
+    }
+    //&(3, 5) 会匹配模式 &(x, y)，因此 x 得到了 3，y 得到了 5
+    ```
+
+### 3) 不可驳和可驳式匹配
+
+* 不可驳模式匹配：必须模式完全覆盖，才能匹配
+  * `let` , `for` 和 `match`
+* 可驳式匹配
+  * `if let`
+
+### 4）忽略模式中的值
+
+* 可以在模式中使用 `_` 模式 / 使用一个以下划线开始的名称 / 或者使用 `..` 忽略所剩部分的值
+
+* 使用 ` _` 忽略整个值
+
+  * `match` 表达式最后的分支
+
+  * 函数参数
+
+    * 比如实现特征时，当你需要特定类型签名但是函数实现并不需要某个参数时。此时编译器就**不会警告说存在未使用的函数参数**
+
+    ```rust
+    fn foo(_: i32, y: i32) {
+        println!("This code only uses the y parameter: {}", y);
+    }
+    
+    fn main() {
+        foo(3, 4);
+    }
+    ```
+
+  * 使用嵌套的 `_` 忽略部分值: 
+
+    * 在一个模式内部使用
+
+      * 第一个匹配分支，我们不关心里面的值，只关心元组中两个元素的类型，因此对于 `Some` 中的值，直接进行忽略
+
+      ```rust
+      let numbers = (2, 4, 8, 16, 32);
+      
+      match numbers {
+          (first, _, third, _, fifth) => {
+              println!("Some numbers: {}, {}, {}", first, third, fifth)
+          },
+      }
+      ```
+
+* 使用一个以下划线 `_` 开始的名称, 忽略未使用变量
+
+  * 如果你创建了一个变量却不在任何地方使用它，Rust 通常会给你一个警告。
+
+    * 用下划线 `_` 作为变量名的开头，告诉 Rust 不要警告这个未使用的变量
+
+    ```rust
+    fn main() {
+        let _x = 5;
+        let y = 10;
+    }
+    //这里得到了警告说未使用变量 y，至于 x 则没有警告。
+    ```
+
+  * 注意,  模式绑定使用 `_` 和使用 `_x` 有微妙的不同：
+
+    * **`_x` 仍会将值绑定到变量，而 `_` 则完全不会绑定**
+
+* 用 `..` 忽略剩余值
+
+  * 对于有多个部分的值，可以使用 `..` 语法来只使用部分值而忽略其它值。不用再为每一个被忽略的值都单独列出下划线
+
+    ```rust
+    struct Point {
+        x: i32,
+        y: i32,
+        z: i32,
+    }
+    
+    let origin = Point { x: 0, y: 0, z: 0 };
+    
+    match origin {
+        Point { x, .. } => println!("x is {}", x),
+    }
+    ```
+
+  * 还可以用 `..` 来忽略元组中间的某些值
+
+    ```rust
+    fn main() {
+        let numbers = (2, 4, 8, 16, 32);
+    
+        match numbers {
+            (first, .., last) => {
+                println!("Some numbers: {}, {}", first, last);
+            },
+        }
+    }
+    //这里用 first 和 last 来匹配第一个和最后一个值。.. 将匹配并忽略中间的所有值
+    ```
+
+  * 使用 `..` 必须是无歧义的。否则Rust 会报错
+
+### 5) 匹配守卫 *match guard*
+
+* 是一个位于 `match` 分支模式之后的额外 `if` 条件
+
+  * 能为分支模式提供更进一步的匹配条件
+
+  * 模式中无法提供类如 `if x < 5` 的表达能力，我们可以通过匹配守卫的方式来实现
+
+    ```rust
+    let num = Some(4);
+    
+    match num {
+        Some(x) if x < 5 => println!("less than five: {}", x),
+        Some(x) => println!("{}", x),
+        None => (),
+    }
+    ```
+
+  * 若使用 **或** 运算符 `|` 来指定多个模式，匹配守卫的条件会作用于所有的模式
+
+### 6）`@` 绑定
+
+* 当你既想要限定分支范围，又想要使用分支的变量时，就可以用 `@` 来绑定到一个新的变量上，实现想要的功能
+
+  ```rust
+  enum Message {
+      Hello { id: i32 },
+  }
+  
+  let msg = Message::Hello { id: 5 };
+  
+  match msg {
+      Message::Hello { id: id_variable @ 3..=7 } => {
+          println!("Found an id in range: {}", id_variable)
+      },
+      Message::Hello { id: 10..=12 } => {
+          println!("Found an id in another range")
+      },
+      Message::Hello { id } => {
+          println!("Found some other id: {}", id)
+      },
+  }
+  ```
+
+* @: 前绑定后解构
+
+  * 在绑定新变量的同时，对目标进行解构
+
+  ```rust
+  #[derive(Debug)]
+  struct Point {
+      x: i32,
+      y: i32,
+  }
+  
+  fn main() {
+      // 绑定新变量 `p`，同时对 `Point` 进行解构
+      let p @ Point {x: px, y: py } = Point {x: 10, y: 23};
+      println!("x: {}, y: {}", px, py);
+      println!("{:?}", p);
+  
+  
+      let point = Point {x: 10, y: 5};
+      if let p @ Point {x: 10, y} = point {
+          println!("x is 10 and y is {} in {:?}", y, p);
+      } else {
+          println!("x was not 10 :(");
+      }
+  }
+  ```
+
+# 8. 方法 Method
+
+* Rust 的方法往往跟<u>结构体、枚举、特征</u>(Trait)一起使用
+
+* 使用方法代替函数有以下好处：
+
+  - 不用在函数签名中重复书写 `self` 对应的类型
+  - 代码的组织性和内聚性更强，对于代码维护和阅读来说，好处巨大
+
+* 定义 `impl`
+
+  ```rust
+  struct Circle {
+      x: f64,
+      y: f64,
+      radius: f64,
+  }
+  
+  impl Circle {
+      // new是Circle的关联函数，因为它的第一个参数不是self，且new并不是关键字
+      // 这种方法往往用于初始化当前结构体的实例
+      fn new(x: f64, y: f64, radius: f64) -> Circle {
+          Circle {
+              x: x,
+              y: y,
+              radius: radius,
+          }
+      }
+  
+      // Circle的方法，&self表示借用当前的Circle结构体
+      fn area(&self) -> f64 {
+          std::f64::consts::PI * (self.radius * self.radius)
+      }
+  }
+  ```
+
+  * `impl` + 类型名，指明是跟哪个类型相关联的 method
+
+    *  Rust 的<u>对象定义和方法定义</u>是<u>分离</u>的
+
+    * 这种数据和使用分离的方式，会给予使用者极高的灵活度
+
+    ![image-20221108005211126](C:\Users\11731\AppData\Roaming\Typora\typora-user-images\image-20221108005211126.png)
+
+* `self`、`&self` 和 `&mut self`
+
+  * 在一个 `impl` 块内
+    * `Self` 指代被实现方法的结构体<u>类型</u>
+    * `self` 指代<u>此类型的实例</u>
+    * `&self` 和 `&mut self` 则分别为对应类型实例的不可变借用和可变借用
+  * 这样的写法会让我们的代码简洁很多，而且非常便于理解
+  * `self` 依然有所有权的概念
+    * `self` 表示实现类型的实例的所有权转移到该方法中，这种形式用的较少
+    * `&self` 表示该方法对实现类型实例的不可变借用
+    * `&mut self` 表示可变借用
+
+* 方法名跟结构体 field 名相同
+
+  * 在 Rust 中，允许方法名跟结构体的字段名相同
+
+    ```rust
+    impl Rectangle {
+        fn width(&self) -> bool {
+            self.width > 0
+        }
+    }
+    
+    fn main() {
+        let rect1 = Rectangle {
+            width: 30,
+            height: 50,
+        };
+    
+        if rect1.width() {
+            println!("The rectangle has a nonzero width; it is {}", rect1.width);
+        }
+    }
+    ```
+
+    * 当我们使用 `rect1.width()` 时，Rust 知道我们调用的是它的方法，如果使用 `rect1.width`，则是访问它的字段
+    * 一般来说，方法跟字段同名，往往适用于实现 `getter` 访问器
+
+* 带有多个参数的方法
+
+  * 方法和函数一样，可以使用多个参数
+
+* -> 运算符到哪去了？
+
+  * Rust 有一个叫 **自动引用和解引用**的功能
+    * 对于object类型的指针&object，调用object方法时，并不需要解引用，直接可以`object.something()` 调用，与实例调用的形式一致
+    * 即没有为指针调用类型方式，设计一个与 `->` 等效的运算符
+  * 具体工作逻辑为：
+    * 当使用 `object.something()` 调用方法时，Rust 会自动为 `object` 添加 `&`、`&mut` 或 `*` ，以便使 `object` 与方法签名匹配
+    * 这种形式简单得多
+  * 这种自动引用的行为之所以有效，是因为方法有一个明确的接收者———— `self` 的类型
+    * 在给出接收者和方法名的前提下，Rust 可以明确地计算出方法是仅仅读取（`&self`），做出修改（`&mut self`）或者是获取所有权（`self`）
+
+* 关联函数
+
+  * 定义在 `impl` 中，且没有 `self` 的函数
+    * 因为没有 `self`，不能用 `f.read()` 的形式调用。因此它是一个函数而不是方法
+    * 又在 `impl` 中，与结构体紧密关联，因此称为关联函数
+  * 不能用 `.` 的方式来调用，我们需要用 `::` 来调用（位于结构体的命名空间中）
+
+* 多个 `impl` 定义
+
+  * Rust 允许我们为一个结构体定义多个 `impl` 块
+
+* 为枚举实现方法
+
+  * 我们可以像结构体一样，为枚举实现方法
+
