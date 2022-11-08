@@ -2486,3 +2486,599 @@ let none = plus_one(None);
 
   * 我们可以像结构体一样，为枚举实现方法
 
+# 9. 泛型和特征
+
+## 1. 泛型
+
+### 1）概述
+
+* 多态的一种体现，通过<u>抽象各种具体类型</u>为<u>一个“泛型”</u>，<u>减少代码的臃肿</u>，为程序员提供编程的便利。同时可以极大地丰富语言本身的表达能力
+* 泛型可以用在 函数、结构体、枚举、方法等的定义中
+  * 语法主要是加上**泛型参数** `T` 
+    * 在使用 `T` 前，须对其进行声明
+    * 名字可以任取，只是一个占位符号，习惯于用"T"
+  * 调用方法与普通类型无异，只是可以传入参数的类型不再受限制
+
+### 2）泛型函数
+
+```rust
+fn largest<T>(list: &[T]) -> T 
+{
+    //...
+}
+```
+
+* 提前声明： `largest<T>` 对泛型参数 `T` 进行了声明
+* 然后才在函数参数中进行使用该泛型参数 `list: &[T]` 
+
+### 3）泛型结构
+
+```rust
+struct Point1<T> {
+    x: T,
+    y: T,
+}	//使用泛型，可以存放任何类型的坐标值
+
+struct Point2<T,U> {
+    x: T,
+    y: U,
+}
+
+fn main() {
+    let integer = Point1 { x: 5, y: 10 };
+    let float = Point1 { x: 1.0, y: 4.0 };
+    let p = Point2 {x: 1, y :1.1};
+}
+```
+
+* **提前声明**：	
+  * 跟泛型函数定义类似，首先我们在使用泛型参数之前必需要进行声明 `Point<T>`
+  * 接着就可以在结构体的字段类型中使用 `T` 来替代具体的类型
+* `Point1<T>`中，都为 `T` 泛型的 `x`，`y` 必须为相同类型，否则报错
+  * 若想要不同类型，可定义多个泛型，如 `Point2<T,U>`
+
+### 4）泛型枚举
+
+*  `Option<T>`: 一个拥有泛型 `T` 的枚举类型
+
+  ```rust
+  enum Option<T> {
+      Some(T),
+      None,
+  }
+  ```
+
+* `Result<T, E>`
+
+  ```rust
+  enum Result<T, E> {
+      Ok(T),
+      Err(E),
+  }
+  ```
+
+### 5）泛型方法
+
+* 针对泛型结构体和泛型枚举类型，可以实现泛型方法
+
+  ```rust
+  struct Point<T> {
+      x: T,
+      y: T,
+  }
+  
+  impl<T> Point<T> {
+      fn x(&self) -> &T {
+          &self.x
+      }
+  }
+  
+  fn main() {
+      let p = Point { x: 5, y: 10 };
+  
+      println!("p.x = {}", p.x());
+  }
+  ```
+
+  * 提前声明：
+    * `impl<T>`
+  * 这里的 `Point<T>` 不再是泛型声明，而是一个使用 `T` 的完整的结构体类型
+
+* 我们还能在方法中，定义额外的泛型函数
+
+  ```rust
+  struct Point<T, U> {
+      x: T,
+      y: U,
+  }
+  
+  impl<T, U> Point<T, U> {
+      fn mixup<V, W>(self, other: Point<V, W>) -> Point<T, W> {
+          Point {
+              x: self.x,
+              y: other.y,
+          }
+      }
+  }	//mixup<V,W>为另一个泛型函数
+  
+  fn main() {
+      let p1 = Point { x: 5, y: 10.4 };
+      let p2 = Point { x: "Hello", y: 'c'};
+  
+      let p3 = p1.mixup(p2);
+  
+      println!("p3.x = {}, p3.y = {}", p3.x, p3.y);
+  }
+  ```
+
+* 为<u>具体的泛型</u>类型实现方法
+
+  * 我们能针对<u>特定的泛型类型</u>实现某个<u>特定的方法</u>，对于<u>其它泛型类型则没有</u>定义该方法
+
+  * 例如：对于 `Point<T>` 类型，你不仅能定义基于 `T` 的方法，还能针对特定的具体类型
+
+    ```rust
+    impl Point<f32> {
+        fn distance_from_origin(&self) -> f32 {
+            (self.x.powi(2) + self.y.powi(2)).sqrt()
+        }
+    }
+    ```
+
+    * 这段代码意味着 `Point<f32>` 类型会有一个方法 `distance_from_origin`
+    * 而其他 `T` 不是 `f32` 类型的 `Point<T> `实例则没有定义此方法。
+
+### 6）const 泛型
+
+* 基于值的泛型参数
+
+  * 比如数组类型 `[T;N]`，如果想要分别定义 `T` 和`N` 的泛型，
+    * `T` 可以是任何类型，好定义
+    * 但是 `N` 只能是 `usize` 类型，无法用普通泛型定义。这便是 const 泛型的作用
+
+* 例
+
+  ```rust
+  fn display_array<T: std::fmt::Debug, const N: usize>(arr: [T; N]) {
+      println!("{:?}", arr);
+  }
+  fn main() {
+      let arr: [i32; 3] = [1, 2, 3];
+      display_array(arr);
+  
+      let arr: [i32; 2] = [1, 2];
+      display_array(arr);
+  }
+  ```
+
+  * `N` 就是 const 泛型
+    * 定义的语法是 `const N: usize`
+    * 表示它基于的值类型是 `usize`
+
+### 7）const 泛型表达式
+
+* 使用泛型表达式，对泛型能抽象的类型进行限制。若为 `false` ，不能通过编译
+
+  ```rust
+  #![allow(incomplete_features)]
+  #![feature(generic_const_exprs)]
+  
+  fn something<T>(val: T)
+  where
+      Assert<{ core::mem::size_of::<T>() < 768 }>: IsTrue,
+      //       ^-----------------------------^ 这里是一个 const 表达式，换成其它的 const 表达式也可以
+  {
+      //
+  }
+  fn main() {
+      something([0u8; 0]); // ok
+      something([0u8; 512]); // ok
+      something([0u8; 1024]); // 编译错误，数组长度是1024字节，超过了768字节的参数长度限制
+  }
+  // ---
+  pub enum Assert<const CHECK: bool> {
+      //
+  }
+  pub trait IsTrue {
+      //
+  }
+  impl IsTrue for Assert<true> {
+      //
+  }
+  ```
+
+### 8）泛型的性能
+
+* Rust 通过在编译时进行泛型代码的 **单态化**(*monomorphization*)来保证效率
+  * 单态化是一个通过<u>填充</u>编译时使用的<u>具体类型</u>，将<u>通用代码转换为特定代码</u>的过程
+    * 在编译期为泛型对应的多个类型，生成各自的代码
+  * 编译器的行为：正好与我们创建泛型函数的步骤相反
+    * 编译器寻找所有泛型代码被调用的位置，并针对具体类型生成代码
+    * 将泛型定义替换为出现类型的具体的定义
+* 在 Rust 中，泛型是零成本的抽象: 在使用泛型时<u>没有运行时开销</u>
+  * 即：可以使用泛型来编写不重复的代码，而 Rust 将会为每一个实例编译其特定类型的代码
+  * 当代码运行，它的执行效率就跟好像<u>手写每个具体定义的重复代码一样</u>
+* 但是损失了编译速度和增大了最终生成文件的大小
+
+ ## 2. 特征
+
+### 1）概述
+
+* 类似于”接口“的概念
+* 定义了**一个可以被共享的行为，只要实现了特征，你就能使用该行为**
+  * 只定义行为看起来是什么样的：只定义<u>函数签名</u>
+  * 不定义行为具体是怎么样的：函数体的内容，需要在拥有该特征的类型中自己实现
+* 编译器也会确保任何实现某特征的类型，都拥有与这个特征签名的定义完全一致的方法
+
+### 2）定义语法
+
+```rust
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+```
+
+* 使用 `trait` 关键字来声明一个特征
+* `Summary` 是特征名
+* 在 `{}` 中定义了该特征的所有方法
+
+### 3）实现特征
+
+* 实现特征的语法，与为结构体、枚举方法实现很像
+* `impl Summary for Post{}`
+  * “为 `Post` 类型实现 `Summary` 特征”
+  * 然后在 `impl` 的花括号中实现该特征的具体方法
+
+```rust
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+pub struct Post {
+    pub title: String, // 标题
+    pub author: String, // 作者
+    pub content: String, // 内容
+}
+
+impl Summary for Post {
+    fn summarize(&self) -> String {
+        format!("文章{}, 作者是{}", self.title, self.author)
+    }
+}
+
+pub struct Weibo {
+    pub username: String,
+    pub content: String
+}
+
+impl Summary for Weibo {
+    fn summarize(&self) -> String {
+        format!("{}发表了微博{}", self.username, self.content)
+    }
+}
+```
+
+* 孤儿规则：特征定义与实现的位置
+
+  * 如果你想要为类型 `A` 实现特征 `T`，那么 `A` 或者 `T` <u>至少有一个是</u>在<u>当前作用域</u>中<u>定义</u>的
+    * 比如，不能在当前作用域中，为 `String` 类型实现标准库中的 `Display` 特征
+    * 可以确保其它人编写的代码不会破坏你的代码，也确保了你不会莫名其妙就破坏了风马牛不相及的代码
+
+* 默认实现
+
+  * 可以在特征中定义具有**默认实现**的方法，这样无需再在其它类型中实现该方法
+  * 可以被重载
+
+  ```rust
+  pub trait Summary {
+      fn summarize(&self) -> String {
+          String::from("(Read more...)")
+      }
+  }
+  ```
+
+  * 默认实现还允许调用<u>相同特征中的其他方法</u>，哪怕这些方法<u>没有默认实现</u>
+
+### 4）特征作为函数参数
+
+```rust
+pub fn notify(item: &impl Summary) {
+    println!("Breaking news! {}", item.summarize());
+}
+```
+
+* `impl Summary`：**实现了`Summary`特征** 的 `item` 参数
+  * 意思为：可以使用任何实现了 `Summary` 特征的类型，作为该函数的参数
+  * 同时在函数体内，还可以调用该特征的方法
+
+### 5）特征约束 (trait bound)
+
+* `impl Trait` 这种语法非常好理解，但是实际上它只是一个<u>语法糖</u>。
+
+  * 真正的写法：一种<u>**泛型**的约束</u>
+  * 与**泛型**结合
+
+  ```rust
+  pub fn notify<T: Summary>(item: &T) {
+      println!("Breaking news! {}", item.summarize());
+  }
+  ```
+
+* 形如 `T: Summary` 被称为**特征约束**，表示传入的参数类型 `T` 必须实现 Summary 类型
+
+  * 在简单的场景下 `impl Trait` 这种语法糖就足够使用。但是对于复杂的场景，特征约束可以让我们拥有更大的灵活性和语法表现能力：
+
+    ```rust
+    pub fn notify<T: Summary>(item1: &T, item2: &T) {}
+    ```
+
+    * 泛型类型 `T` 说明了 `item1` 和 `item2` 必须拥有同样的类型。而语法糖做不到这种约束
+
+* 多重约束
+
+  * 除了单个约束条件，我们还可以指定多个约束条件
+
+  * 语法糖
+
+    ```rust
+    pub fn notify(item: &(impl Summary + Display)) {}
+    ```
+
+  * 特征约束形式
+
+    ```rust
+    pub fn notify<T: Summary + Display>(item: &T) {}
+    ```
+
+* Where 约束
+
+  * 通过 `where`，简化特征约束很多时的写法
+
+    ```rust
+    fn some_function<T: Display + Clone, U: Clone + Debug>(t: &T, u: &U) -> i32 {}
+    ```
+
+    ```rust
+    fn some_function<T, U>(t: &T, u: &U) -> i32
+        where T: Display + Clone,
+              U: Clone + Debug
+    {}
+    ```
+
+* 在 泛型方法/特征实现 中进行约束
+
+  * 达到 有条件地实现<u>方法或特征</u> 的效果
+
+  * 方法实现
+
+    * 意思：`cmp_display` 方法，并不是所有的 `Pair<T>` 结构体对象都可以拥有，只有 `T` 同时实现了 `Display + PartialOrd` 的 `Pair<T>` 才可以拥有此方法
+
+    ```rust
+    use std::fmt::Display;
+    
+    struct Pair<T> {
+        x: T,
+        y: T,
+    }
+    
+    impl<T> Pair<T> {
+        fn new(x: T, y: T) -> Self {
+            Self {
+                x,
+                y,
+            }
+        }
+    }
+    
+    impl<T: Display + PartialOrd> Pair<T> {
+        fn cmp_display(&self) {
+            if self.x >= self.y {
+                println!("The largest member is x = {}", self.x);
+            } else {
+                println!("The largest member is y = {}", self.y);
+            }
+        }
+    }
+    ```
+
+  * 特征实现
+
+    * 例如，标准库为任何实现了 `Display` 特征的类型实现了 `ToString` 特征
+
+    ```rust
+    impl<T: Display> ToString for T {
+        // --snip--
+    }
+    ```
+
+### 6）特征作为函数返回类型
+
+* 可以通过 `impl Trait` 来说明一个函数返回了一个类型，该类型实现了某个特征
+
+  * 有个限制：只能有一个具体的类型
+
+  ```rust
+  fn returns_summarizable() -> impl Summary {
+      Weibo {
+          username: String::from("sunface"),
+          content: String::from(
+              "m1 max太厉害了，电脑再也不会卡",
+          )
+      }
+  }
+  ```
+
+  * 对于 `returns_summarizable` 的调用者而言，他<u>只知道返回了一个实现了 `Summary` 特征的对象</u>，但是并不知道返回了一个 `Weibo` 类型
+
+* 作用
+
+  * 这种形式的返回值，在返回的真实类型非常复杂时很有用。
+    * 因为你不知道该怎么声明时(毕竟 Rust 要求你必须标出所有的类型)，此时就可以用 `impl Trait` 的方式简单返回。
+  * 例如，闭包和迭代器很复杂，只有编译器才知道那玩意的真实类型。好在你可以用 `impl Iterator` 来告诉调用者，返回了一个迭代器，因为所有迭代器都会实现 `Iterator` 特征
+
+### 7）通过 `derive` 派生特征
+
+*  `#[derive(Debug)]` 是一种特征派生语法。
+  * 被 `derive` 标记的对象会<u>自动实现</u>对应的<u>默认特征代码</u>，继承相应的功能
+  * `derive` 派生出来的是 Rust <u>默认给我们提供的特征</u>，在开发过程中极大的简化了自己手动实现相应特征的需求
+* `Debug` 特征
+  * 当你给一个结构体标记后，就可以使用 `println!("{:?}", s)` 的形式打印该结构体的对象
+* `Copy` 特征
+  * 当标记到一个类型上时，可以让这个类型自动实现 `Copy` 特征，进而可以调用 `copy` 方法，进行自我复制
+
+### 8）特征对象
+
+* 类似于 c++ 中虚函数机制。通过一个统一的"指针"调用同名方法，但实际执行的是各自的实现
+
+* 使用"特征对象"类型，指向<u>所有</u>实现了<u>对应特征</u>的<u>实例</u>（一种泛指，提供一个统一的接口）
+
+  * 具体怎么映射，这种映射关系是存储在一张表中。
+  * 总之，效果为，可以在运行时通过特征对象，找到具体调用的类型方法
+
+* 语法
+
+  * 声明类型
+    *  `&dyn trait_name`  或 `Box<dyn trait_name>`
+    * `dyn` 不能单独作为特征对象的定义
+      * 因为特征对象可以是任意实现了某个特征的类型，编译器在编译期不知道该类型的大小，不同的类型大小是不同的
+  * 创建特征对象：
+    *  `&x` 或 `Box::new(x) `
+    * 如果 调用类型 没有实现对应特征，编译器直接就会报错，安全性
+
+* 例
+
+  ```rust
+  trait Draw {
+      fn draw(&self) -> String;
+  } 
+  
+  impl Draw for u8 {
+      fn draw(&self) -> String {
+          format!("u8: {}", *self)
+      }
+  }
+  
+  impl Draw for f64 {
+      fn draw(&self) -> String {
+          format!("f64: {}", *self)
+      }
+  }
+  
+  // 若 T 实现了 Draw 特征， 则调用该函数时传入的 Box<T> 可以被隐式转换成函数参数签名中的 Box<dyn Draw>
+  fn draw1(x: Box<dyn Draw>) {
+      // 由于实现了 Deref 特征，Box 智能指针会自动解引用为它所包裹的值，然后调用该值对应的类型上定义的 `draw` 方法
+      x.draw();
+  }
+  
+  fn draw2(x: &dyn Draw) {
+      x.draw();
+  }
+  
+  fn main() {
+      let x = 1.1f64;
+      let y = 8u8; 
+      draw1(Box::new(x));
+      draw1(Box::new(y));
+      draw2(&x);	//实现一个函数，接受不同类型参数的形式
+      draw2(&y);
+  }
+  ```
+
+  ```rust
+  pub trait Draw {
+      fn draw(&self);
+  }	//定义特征
+  
+  pub struct Button {
+      pub width: u32,
+      pub height: u32,
+      pub label: String,
+  }	
+  
+  impl Draw for Button {
+      fn draw(&self) {
+          // 绘制按钮的代码
+      }
+  }	//实现特征
+  
+  struct SelectBox {
+      width: u32,
+      height: u32,
+      options: Vec<String>,
+  }
+  
+  impl Draw for SelectBox {
+      fn draw(&self) {
+          // 绘制SelectBox的代码
+      }
+  }	//实现特征
+  
+  pub struct Screen {
+      pub components: Vec<Box<dyn Draw>>,
+  }	//存放 Draw 特征对象的动态数组
+  
+  impl Screen {
+      pub fn run(&self) {
+          for component in self.components.iter() {
+              component.draw();
+          }
+      }
+  }	//调用各自的draw函数
+  
+  fn main() {
+      let screen = Screen {
+          components: vec![
+              Box::new(SelectBox {
+                  width: 75,
+                  height: 10,
+                  options: vec![
+                      String::from("Yes"),
+                      String::from("Maybe"),
+                      String::from("No")
+                  ],
+              }),
+              Box::new(Button {
+                  width: 50,
+                  height: 10,
+                  label: String::from("OK"),
+              }),
+          ],
+      };
+  
+      screen.run();
+  }
+  ```
+
+* 动态分发
+
+  * 静态分发与动态分发
+
+    * 静态：泛型
+      * 在编译期完成处理的：编译器会为每一个泛型参数对应的具体类型生成一份代码
+    * 动态：特征对象
+      * 直到运行时，才能确定需要调用什么方法。编译时不能确定
+
+  * 当使用特征对象时，Rust 必须使用动态分发。
+
+    * 编译器无法知晓所有可能用于特征对象代码的类型，所以它也不知道应该调用哪个类型的哪个方法实现
+
+  * 实现图示
+
+    * 当类型 `Button` 实现了特征 `Draw` 时，`btn` 中保存了作为特征对象的数据指针（指向类型 `Button` 的实例数据）和行为指针（指向 `vtable`）
+      * **`btn` 是哪个特征对象的实例，它的 `vtable` 中就包含了该特征的方法**
+      * 所以，类型 `Button` 的实例对象 `btn` 可以当作特征 `Draw` 的特征对象类型来使用
+
+    ![Snipaste_2022-11-09_01-02-41](../picture/Snipaste_2022-11-09_01-02-41.png)
+
+    * 特征对象没有固定大小，但它的引用类型的大小是固定的，它由两个指针组成（`ptr` 和 `vptr`），因此占用两个指针大小
+      * 一个指针 `ptr` 指向实现了特征 `Draw` 的具体类型的实例
+        * 也就是当作特征 `Draw` 来用的类型的实例，比如类型 `Button` 的实例、类型 `SelectBox` 的实例
+      * 一个指针 `vptr` 指向一个虚表 `vtable`
+        * `vtable` 中保存了类型 `Button` 或类型 `SelectBox` 的实例对于可以调用的实现于特征 `Draw` 的方法
+        * 调用方法时，直接从 `vtable` 中找到方法并调用 (实现了映射)
+
+* 特征对象的限制
+  * 不是所有特征都能拥有特征对象，只有<u>对象安全的特征</u>才行
+  * 规定：当一个特征的所有方法都有如下属性时，它的对象是安全的
+    * 方法的返回类型不能是 `Self`
+    * 方法没有任何泛型参数
+  * 因为类型模糊，要避免语义模糊

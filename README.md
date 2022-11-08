@@ -9,6 +9,7 @@
   * [2022.11.04](#2022.11.04) 
   * [2022.11.05](#2022.11.05)
   * [2022.11.07](#2022.11.07)
+  * [2022.11.08](#2022.11.08)
 * Rust学习笔记
   * [RustNote](./note/RustNote.md)
 * rustlings 代码
@@ -41,6 +42,12 @@
 
 ## 2022.11.07
 
-* 阅读  The Rustlings Course 符合类型、流程控制、模式匹配、方法 章节
+* 阅读  The Rustlings Course 复合类型、流程控制、模式匹配、方法 章节
 * 整理并完成 rust语言上述部分的笔记
 * 完成rustlings：variables，functions，if  三部分
+
+## 2022.11.08
+
+* 阅读   The Rustlings Course 泛型和特征章节
+* 整理并完成 rust语言上述部分的笔记
+* 完成rustlings：primitive_types ，move_semantics，structs  三部分  
