@@ -1,6 +1,19 @@
 # MyRustBasedOsComp2022_Repo
 参与rust-based-os-comp2022的日报/周报记录
 
+【快速跳转】
+
+* Daily
+  * [2022.11.02](#2022.11.02)
+  * [2022.11.03](#2022.11.03)
+  * [2022.11.04](#2022.11.04) 
+  * [2022.11.05](#2022.11.05)
+  * [2022.11.07](#2022.11.07)
+* Rust学习笔记
+  * [RustNote](./note/RustNote.md)
+* rustlings 代码
+  * [rustlings](./rustlings/exercises/)
+
 ## 2022.11.02
 
 * 开始着手学习清华Rust程序设计训练课程
