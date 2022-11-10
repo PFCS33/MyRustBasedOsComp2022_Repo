@@ -2488,9 +2488,9 @@ let none = plus_one(None);
 
 # 9. 泛型和特征
 
-## 1. 泛型
+## 9.1 泛型
 
-### 1）概述
+### 1.概述
 
 * 多态的一种体现，通过<u>抽象各种具体类型</u>为<u>一个“泛型”</u>，<u>减少代码的臃肿</u>，为程序员提供编程的便利。同时可以极大地丰富语言本身的表达能力
 * 泛型可以用在 函数、结构体、枚举、方法等的定义中
@@ -2499,7 +2499,7 @@ let none = plus_one(None);
     * 名字可以任取，只是一个占位符号，习惯于用"T"
   * 调用方法与普通类型无异，只是可以传入参数的类型不再受限制
 
-### 2）泛型函数
+### 2.泛型函数
 
 ```rust
 fn largest<T>(list: &[T]) -> T 
@@ -2511,7 +2511,7 @@ fn largest<T>(list: &[T]) -> T
 * 提前声明： `largest<T>` 对泛型参数 `T` 进行了声明
 * 然后才在函数参数中进行使用该泛型参数 `list: &[T]` 
 
-### 3）泛型结构
+### 3.泛型结构
 
 ```rust
 struct Point1<T> {
@@ -2537,7 +2537,7 @@ fn main() {
 * `Point1<T>`中，都为 `T` 泛型的 `x`，`y` 必须为相同类型，否则报错
   * 若想要不同类型，可定义多个泛型，如 `Point2<T,U>`
 
-### 4）泛型枚举
+### 4.泛型枚举
 
 *  `Option<T>`: 一个拥有泛型 `T` 的枚举类型
 
@@ -2557,7 +2557,7 @@ fn main() {
   }
   ```
 
-### 5）泛型方法
+### 5.泛型方法
 
 * 针对泛型结构体和泛型枚举类型，可以实现泛型方法
 
@@ -2628,7 +2628,7 @@ fn main() {
     * 这段代码意味着 `Point<f32>` 类型会有一个方法 `distance_from_origin`
     * 而其他 `T` 不是 `f32` 类型的 `Point<T> `实例则没有定义此方法。
 
-### 6）const 泛型
+### 6.const 泛型
 
 * 基于值的泛型参数
 
@@ -2655,7 +2655,7 @@ fn main() {
     * 定义的语法是 `const N: usize`
     * 表示它基于的值类型是 `usize`
 
-### 7）const 泛型表达式
+### 7.const 泛型表达式
 
 * 使用泛型表达式，对泛型能抽象的类型进行限制。若为 `false` ，不能通过编译
 
@@ -2687,7 +2687,7 @@ fn main() {
   }
   ```
 
-### 8）泛型的性能
+### 8.泛型的性能
 
 * Rust 通过在编译时进行泛型代码的 **单态化**(*monomorphization*)来保证效率
   * 单态化是一个通过<u>填充</u>编译时使用的<u>具体类型</u>，将<u>通用代码转换为特定代码</u>的过程
@@ -2700,9 +2700,9 @@ fn main() {
   * 当代码运行，它的执行效率就跟好像<u>手写每个具体定义的重复代码一样</u>
 * 但是损失了编译速度和增大了最终生成文件的大小
 
- ## 2. 特征
+ ## 9.2 特征
 
-### 1）概述
+### 1.概述
 
 * 类似于”接口“的概念
 * 定义了**一个可以被共享的行为，只要实现了特征，你就能使用该行为**
@@ -2710,7 +2710,7 @@ fn main() {
   * 不定义行为具体是怎么样的：函数体的内容，需要在拥有该特征的类型中自己实现
 * 编译器也会确保任何实现某特征的类型，都拥有与这个特征签名的定义完全一致的方法
 
-### 2）定义语法
+### 2.定义语法
 
 ```rust
 pub trait Summary {
@@ -2722,7 +2722,7 @@ pub trait Summary {
 * `Summary` 是特征名
 * 在 `{}` 中定义了该特征的所有方法
 
-### 3）实现特征
+### 3.实现特征
 
 * 实现特征的语法，与为结构体、枚举方法实现很像
 * `impl Summary for Post{}`
@@ -2778,7 +2778,7 @@ impl Summary for Weibo {
 
   * 默认实现还允许调用<u>相同特征中的其他方法</u>，哪怕这些方法<u>没有默认实现</u>
 
-### 4）特征作为函数参数
+### 4.特征作为函数参数
 
 ```rust
 pub fn notify(item: &impl Summary) {
@@ -2790,7 +2790,7 @@ pub fn notify(item: &impl Summary) {
   * 意思为：可以使用任何实现了 `Summary` 特征的类型，作为该函数的参数
   * 同时在函数体内，还可以调用该特征的方法
 
-### 5）特征约束 (trait bound)
+### 5.特征约束 (trait bound)
 
 * `impl Trait` 这种语法非常好理解，但是实际上它只是一个<u>语法糖</u>。
 
@@ -2814,6 +2814,8 @@ pub fn notify(item: &impl Summary) {
     * 泛型类型 `T` 说明了 `item1` 和 `item2` 必须拥有同样的类型。而语法糖做不到这种约束
 
 * 多重约束
+
+  * 通过 + 指定多个 trait bound
 
   * 除了单个约束条件，我们还可以指定多个约束条件
 
@@ -2890,7 +2892,7 @@ pub fn notify(item: &impl Summary) {
     }
     ```
 
-### 6）特征作为函数返回类型
+### 6.特征作为函数返回类型
 
 * 可以通过 `impl Trait` 来说明一个函数返回了一个类型，该类型实现了某个特征
 
@@ -2915,7 +2917,7 @@ pub fn notify(item: &impl Summary) {
     * 因为你不知道该怎么声明时(毕竟 Rust 要求你必须标出所有的类型)，此时就可以用 `impl Trait` 的方式简单返回。
   * 例如，闭包和迭代器很复杂，只有编译器才知道那玩意的真实类型。好在你可以用 `impl Iterator` 来告诉调用者，返回了一个迭代器，因为所有迭代器都会实现 `Iterator` 特征
 
-### 7）通过 `derive` 派生特征
+### 7.通过 `derive` 派生特征
 
 *  `#[derive(Debug)]` 是一种特征派生语法。
   * 被 `derive` 标记的对象会<u>自动实现</u>对应的<u>默认特征代码</u>，继承相应的功能
@@ -2925,7 +2927,7 @@ pub fn notify(item: &impl Summary) {
 * `Copy` 特征
   * 当标记到一个类型上时，可以让这个类型自动实现 `Copy` 特征，进而可以调用 `copy` 方法，进行自我复制
 
-### 8）特征对象
+### 8.特征对象
 
 * 类似于 c++ 中虚函数机制。通过一个统一的"指针"调用同名方法，但实际执行的是各自的实现
 
@@ -2934,151 +2936,864 @@ pub fn notify(item: &impl Summary) {
   * 具体怎么映射，这种映射关系是存储在一张表中。
   * 总之，效果为，可以在运行时通过特征对象，找到具体调用的类型方法
 
-* 语法
 
-  * 声明类型
-    *  `&dyn trait_name`  或 `Box<dyn trait_name>`
-    * `dyn` 不能单独作为特征对象的定义
-      * 因为特征对象可以是任意实现了某个特征的类型，编译器在编译期不知道该类型的大小，不同的类型大小是不同的
-  * 创建特征对象：
-    *  `&x` 或 `Box::new(x) `
-    * 如果 调用类型 没有实现对应特征，编译器直接就会报错，安全性
+#### 1) 语法
+
+* 声明类型
+  *  `&dyn trait_name`  或 `Box<dyn trait_name>`
+  * `dyn` 不能单独作为特征对象的定义
+    * 因为特征对象可以是任意实现了某个特征的类型，编译器在编译期不知道该类型的大小，不同的类型大小是不同的
+* 创建特征对象：
+  *  `&x` 或 `Box::new(x) `
+  * 如果 调用类型 没有实现对应特征，编译器直接就会报错，安全性
+
+#### 2) 例
+
+```rust
+trait Draw {
+    fn draw(&self) -> String;
+} 
+
+impl Draw for u8 {
+    fn draw(&self) -> String {
+        format!("u8: {}", *self)
+    }
+}
+
+impl Draw for f64 {
+    fn draw(&self) -> String {
+        format!("f64: {}", *self)
+    }
+}
+
+// 若 T 实现了 Draw 特征， 则调用该函数时传入的 Box<T> 可以被隐式转换成函数参数签名中的 Box<dyn Draw>
+fn draw1(x: Box<dyn Draw>) {
+    // 由于实现了 Deref 特征，Box 智能指针会自动解引用为它所包裹的值，然后调用该值对应的类型上定义的 `draw` 方法
+    x.draw();
+}
+
+fn draw2(x: &dyn Draw) {
+    x.draw();
+}
+
+fn main() {
+    let x = 1.1f64;
+    let y = 8u8; 
+    draw1(Box::new(x));
+    draw1(Box::new(y));
+    draw2(&x);	//实现一个函数，接受不同类型参数的形式
+    draw2(&y);
+}
+```
+
+```rust
+pub trait Draw {
+    fn draw(&self);
+}	//定义特征
+
+pub struct Button {
+    pub width: u32,
+    pub height: u32,
+    pub label: String,
+}	
+
+impl Draw for Button {
+    fn draw(&self) {
+        // 绘制按钮的代码
+    }
+}	//实现特征
+
+struct SelectBox {
+    width: u32,
+    height: u32,
+    options: Vec<String>,
+}
+
+impl Draw for SelectBox {
+    fn draw(&self) {
+        // 绘制SelectBox的代码
+    }
+}	//实现特征
+
+pub struct Screen {
+    pub components: Vec<Box<dyn Draw>>,
+}	//存放 Draw 特征对象的动态数组
+
+impl Screen {
+    pub fn run(&self) {
+        for component in self.components.iter() {
+            component.draw();
+        }
+    }
+}	//调用各自的draw函数
+
+fn main() {
+    let screen = Screen {
+        components: vec![
+            Box::new(SelectBox {
+                width: 75,
+                height: 10,
+                options: vec![
+                    String::from("Yes"),
+                    String::from("Maybe"),
+                    String::from("No")
+                ],
+            }),
+            Box::new(Button {
+                width: 50,
+                height: 10,
+                label: String::from("OK"),
+            }),
+        ],
+    };
+
+    screen.run();
+}
+```
+
+#### 3) 动态分发
+
+* 静态分发与动态分发
+
+  * 静态：泛型
+    * 在编译期完成处理的：编译器会为每一个泛型参数对应的具体类型生成一份代码
+  * 动态：特征对象
+    * 直到运行时，才能确定需要调用什么方法。编译时不能确定
+
+* 当使用特征对象时，Rust 必须使用动态分发。
+
+  * 编译器无法知晓所有可能用于特征对象代码的类型，所以它也不知道应该调用哪个类型的哪个方法实现
+
+* 实现图示
+
+  * 当类型 `Button` 实现了特征 `Draw` 时，`btn` 中保存了作为特征对象的数据指针（指向类型 `Button` 的实例数据）和行为指针（指向 `vtable`）
+    * **`btn` 是哪个特征对象的实例，它的 `vtable` 中就包含了该特征的方法**
+    * 所以，类型 `Button` 的实例对象 `btn` 可以当作特征 `Draw` 的特征对象类型来使用
+
+  ![Snipaste_2022-11-09_01-02-41](../picture/Snipaste_2022-11-09_01-02-41.png)
+
+  * 特征对象没有固定大小，但它的引用类型的大小是固定的，它由两个指针组成（`ptr` 和 `vptr`），因此占用两个指针大小
+    * 一个指针 `ptr` 指向实现了特征 `Draw` 的具体类型的实例
+      * 也就是当作特征 `Draw` 来用的类型的实例，比如类型 `Button` 的实例、类型 `SelectBox` 的实例
+    * 一个指针 `vptr` 指向一个虚表 `vtable`
+      * `vtable` 中保存了类型 `Button` 或类型 `SelectBox` 的实例对于可以调用的实现于特征 `Draw` 的方法
+      * 调用方法时，直接从 `vtable` 中找到方法并调用 (实现了映射)
+
+#### 4) 特征对象的限制
+
+* 不是所有特征都能拥有特征对象，只有<u>对象安全的特征</u>才行
+* 规定：当一个特征的所有方法都有如下属性时，它的对象是安全的
+  * 方法的返回类型不能是 `Self`
+  * 方法没有任何泛型参数
+* 因为类型模糊，要避免语义模糊
+
+### 9.深入了解特征
+
+#### 1) 关联类型
+
+* 基本语法
+
+  * 在<u>特征定义</u>的语句块中，申明一个<u>自定义类型</u>，这样就可以在特征的方法签名中使用该类型
+
+  * 跟 <u>特征泛型</u> 有点类似，更加简洁。
+    * 特征泛型必须在实现函数等的头部加上泛型参数的声明
+    * 而关联类型在内部定义，函数头部形式简洁，极大增加可读性
+
+  * 定义语法: `type T`
+
+    ```rust
+    pub trait Iterator {
+        type Item;
+    
+        fn next(&mut self) -> Option<Self::Item>; //关联类型Item在Self::命名空间中
+    }
+    ```
+
+  * 例：
+
+    ```rust
+    impl Iterator for Counter {
+        type Item = u32;
+    
+        fn next(&mut self) -> Option<Self::Item> {
+            // --snip--
+        }
+    }
+    
+    fn main() {
+        let c = Counter{..}
+        c.next()
+    }
+    ```
+
+#### 2）默认泛型类型参数
+
+* 当定义特征，使用泛型类型参数时，可以为其指定一个默认的具体类型
+
+* 例：标准库中的 `std::ops::Add` 特征
+
+  ```rust
+  trait Add<RHS=Self> {
+      type Output;
+  
+      fn add(self, rhs: RHS) -> Self::Output;
+  }
+  ```
+
+  * 这里给泛型参数 `RHS` 一个默认值 `Self`
+  * 也就是当用户不指定 `RHS` 时（即实现特征时，使用`impl Add` ，而不是 `impl Add<SOME_TYPE>)`)
+    * 默认使用两个同样类型 `Self` 的值进行相加，然后返回一个关联类型 `Output`
+
+  ```rust
+  use std::ops::Add;
+  
+  struct Millimeters(u32);
+  struct Meters(u32);
+  
+  //特征的泛型参数，在实现时就要给出
+  impl Add<Meters> for Millimeters {
+      type Output = Millimeters;
+  
+      fn add(self, other: Meters) -> Millimeters {
+          Millimeters(self.0 + (other.0 * 1000))
+      }
+  }
+  ```
+
+#### 3）调用同名方法
+
+* 实现在同一类型的不同特征、甚至连类型本身都有同名方法时
+
+  ```rust
+  trait Pilot {
+      fn fly(&self);
+  }
+  
+  trait Wizard {
+      fn fly(&self);
+  }
+  
+  struct Human;
+  
+  impl Pilot for Human {
+      fn fly(&self) {
+          println!("This is your captain speaking.");
+      }
+  }
+  
+  impl Wizard for Human {
+      fn fly(&self) {
+          println!("Up!");
+      }
+  }
+  
+  impl Human {
+      fn fly(&self) {
+          println!("*waving arms furiously*");
+      }
+  }
+  ```
+
+* 策略
+
+  * 编译器默认调用<u>类型中定义</u>的方法
+
+  * 调用特征上的方法：
+
+    * 使用显式调用的语法
+
+      * 前提：方法中，必须有 `self` 参数
+      * 编译器就可以根据调用的类型，决定具体调用哪个方法（必须 调用类型+特征名，才能决定是哪个具体方法）
+
+      ```rust
+      fn main() {
+          let person = Human;
+          Pilot::fly(&person); // 调用Pilot特征上的方法
+          Wizard::fly(&person); // 调用Wizard特征上的方法
+          person.fly(); // 调用Human类型自身的方法
+      }
+      ```
+
+    * 完全限定语法
+
+      * 是调用函数最为明确的方式
+      * 语法
+        * `<Type as Trait>::function(receiver_if_method, next_arg, ...);`
+      * 例：
+      
+      ```rust
+      fn main() {
+          println!("A baby dog is called a {}", <Dog as Animal>::baby_name());
+      }
+      ```
+    
+
+#### 4）supertrait: 特征定义中的特征约束
+
+* 作用
+
+  * 说明一个特征在实现之前，需要实现先另一个特征
+  * 让某个特征 A 能使用另一个特征 B 的功能
+
+* 语法: 特征定义的特征名之后加 `: Type`
+
+  ```rust
+  use std::fmt::Display;
+  
+  trait OutlinePrint: Display {
+      fn outline_print(&self) {
+          let output = self.to_string();
+          let len = output.len();
+          println!("{}", "*".repeat(len + 4));
+          println!("*{}*", " ".repeat(len + 2));
+          println!("* {} *", output);
+          println!("*{}*", " ".repeat(len + 2));
+          println!("{}", "*".repeat(len + 4));
+      }
+  }
+  ```
+
+#### 5）newtype模式：在外部类型上实现外部特征
+
+* 绕过孤儿规则的方法
+
+* 使用一个<u>元组结构体</u>，创建新类型
+
+  * 该封装类型是本地的，因此我们可以为此类型实现外部的特征
 
 * 例
 
   ```rust
-  trait Draw {
-      fn draw(&self) -> String;
-  } 
+  use std::fmt;
+  	
+  struct Wrapper(Vec<String>); //newtype
   
-  impl Draw for u8 {
-      fn draw(&self) -> String {
-          format!("u8: {}", *self)
+  impl fmt::Display for Wrapper {
+      fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+          write!(f, "[{}]", self.0.join(", "))
       }
-  }
-  
-  impl Draw for f64 {
-      fn draw(&self) -> String {
-          format!("f64: {}", *self)
-      }
-  }
-  
-  // 若 T 实现了 Draw 特征， 则调用该函数时传入的 Box<T> 可以被隐式转换成函数参数签名中的 Box<dyn Draw>
-  fn draw1(x: Box<dyn Draw>) {
-      // 由于实现了 Deref 特征，Box 智能指针会自动解引用为它所包裹的值，然后调用该值对应的类型上定义的 `draw` 方法
-      x.draw();
-  }
-  
-  fn draw2(x: &dyn Draw) {
-      x.draw();
   }
   
   fn main() {
-      let x = 1.1f64;
-      let y = 8u8; 
-      draw1(Box::new(x));
-      draw1(Box::new(y));
-      draw2(&x);	//实现一个函数，接受不同类型参数的形式
-      draw2(&y);
+      let w = Wrapper(vec![String::from("hello"), String::from("world")]);
+      println!("w = {}", w);
   }
   ```
+
+* 缺点:
+
+  * 如例中，要访问里面的数组时，是 `self.0.join(", ")` 形式
+    * 必须要加 `self.0`，然后才能执行 `join` 方法。很啰嗦
+
+# 10. 集合类型
+
+* 标准库中最常用的集合类型：`Vector`、`HashMap` 和 `String` 类型
+
+## 10.1 Vector 动态数组
+
+### 1. 类型
+
+* `Vec<T>` 
+
+### 2. 特点
+
+* 在内存中连续排列，访问元素的成本很低
+* 只能存储相同类型的元素
+* 不定长
+
+### 3. 创建
+
+* `Vec::new()`
 
   ```rust
-  pub trait Draw {
-      fn draw(&self);
-  }	//定义特征
+  let v: Vec<i32> = Vec::new();
+  ```
+
+  * `Vec::with_capacity(capacity)` 
+  * 如果预先知道要存储的元素个数，可以使用该方法创建动态数组。可以避免因为插入大量新数据导致频繁的内存分配和拷贝，提升性能
+
+* `vec![]` 宏
+
+  * 与 `Vec::new` 不同，能在创建同时给予初始化值
+
+  ```rust
+  let v = vec![1, 2, 3];
+  ```
+
+### 4. 更新
+
+* `.push()` 方法
+
+  ```rust
+  let mut v = Vec::new();
+  v.push(1);
+  ```
+
+  * 与其它类型一样，必须将 `v` 声明为 `mut` 后，才能进行修改
+
+### 5. Vector 与其元素共存亡
+
+* 跟结构体一样，`Vector` 类型在超出作用域范围后，会被自动删除
+* 它内部存储的所有内容也会随之被删除
+
+### 6. 读取元素
+
+* 通过下标索引 `[]` 访问
+
+* `.get()` 方法
+
+  * 返回类型为  `Option<&T>`，还需要 `match` 解构
+
+  ```rust
+  let v = vec![1, 2, 3, 4, 5];
   
-  pub struct Button {
-      pub width: u32,
-      pub height: u32,
-      pub label: String,
-  }	
+  let third: &i32 = &v[2];
+  println!("第三个元素是 {}", third);
   
-  impl Draw for Button {
-      fn draw(&self) {
-          // 绘制按钮的代码
-      }
-  }	//实现特征
-  
-  struct SelectBox {
-      width: u32,
-      height: u32,
-      options: Vec<String>,
-  }
-  
-  impl Draw for SelectBox {
-      fn draw(&self) {
-          // 绘制SelectBox的代码
-      }
-  }	//实现特征
-  
-  pub struct Screen {
-      pub components: Vec<Box<dyn Draw>>,
-  }	//存放 Draw 特征对象的动态数组
-  
-  impl Screen {
-      pub fn run(&self) {
-          for component in self.components.iter() {
-              component.draw();
-          }
-      }
-  }	//调用各自的draw函数
-  
-  fn main() {
-      let screen = Screen {
-          components: vec![
-              Box::new(SelectBox {
-                  width: 75,
-                  height: 10,
-                  options: vec![
-                      String::from("Yes"),
-                      String::from("Maybe"),
-                      String::from("No")
-                  ],
-              }),
-              Box::new(Button {
-                  width: 50,
-                  height: 10,
-                  label: String::from("OK"),
-              }),
-          ],
-      };
-  
-      screen.run();
+  match v.get(2) {
+      Some(third) => println!("第三个元素是 {}", third),
+      None => println!("去你的第三个元素，根本没有！"),
   }
   ```
 
-* 动态分发
+* 两种方法的区别
 
-  * 静态分发与动态分发
+  * 数组越界的问题的处理上
 
-    * 静态：泛型
-      * 在编译期完成处理的：编译器会为每一个泛型参数对应的具体类型生成一份代码
-    * 动态：特征对象
-      * 直到运行时，才能确定需要调用什么方法。编译时不能确定
+    * `[]` 直接报错
+    * `.get()` 方法会返回 `None`，非常安全
 
-  * 当使用特征对象时，Rust 必须使用动态分发。
+    ```rust
+    	let v = vec![1, 2, 3, 4, 5];
+    
+    let does_not_exist = &v[100];//Error
+    let does_not_exist = v.get(100);
+    ```
 
-    * 编译器无法知晓所有可能用于特征对象代码的类型，所以它也不知道应该调用哪个类型的哪个方法实现
+### 7. 同时借用多个元素
 
-  * 实现图示
+* 借用同一个Vector的多个元素时，同样遵守 ”借用规则“
+* 违法，则编译器报错
+* 原因
+  * 数组的大小是可变的，当旧数组的大小不够用时，Rust 会重新分配一块更大的内存空间，然后把旧数组拷贝过来。这种情况下，之前的引用显然会指向一块无效的内存
 
-    * 当类型 `Button` 实现了特征 `Draw` 时，`btn` 中保存了作为特征对象的数据指针（指向类型 `Button` 的实例数据）和行为指针（指向 `vtable`）
-      * **`btn` 是哪个特征对象的实例，它的 `vtable` 中就包含了该特征的方法**
-      * 所以，类型 `Button` 的实例对象 `btn` 可以当作特征 `Draw` 的特征对象类型来使用
+### 8. 迭代遍历 Vector 中的元素
 
-    ![Snipaste_2022-11-09_01-02-41](../picture/Snipaste_2022-11-09_01-02-41.png)
+* 如果想要依次访问数组中的元素，可以使用迭代的方式去遍历数组
 
-    * 特征对象没有固定大小，但它的引用类型的大小是固定的，它由两个指针组成（`ptr` 和 `vptr`），因此占用两个指针大小
-      * 一个指针 `ptr` 指向实现了特征 `Draw` 的具体类型的实例
-        * 也就是当作特征 `Draw` 来用的类型的实例，比如类型 `Button` 的实例、类型 `SelectBox` 的实例
-      * 一个指针 `vptr` 指向一个虚表 `vtable`
-        * `vtable` 中保存了类型 `Button` 或类型 `SelectBox` 的实例对于可以调用的实现于特征 `Draw` 的方法
-        * 调用方法时，直接从 `vtable` 中找到方法并调用 (实现了映射)
+  * 这种方式比用下标的方式去遍历数组更安全也更高效（不用触发边界检查）
 
-* 特征对象的限制
-  * 不是所有特征都能拥有特征对象，只有<u>对象安全的特征</u>才行
-  * 规定：当一个特征的所有方法都有如下属性时，它的对象是安全的
-    * 方法的返回类型不能是 `Self`
-    * 方法没有任何泛型参数
-  * 因为类型模糊，要避免语义模糊
+  ```rust
+  let v = vec![1, 2, 3];
+  for i in &v {	//只读访问
+      println!("{}", i);
+  }
+  
+  let mut v = vec![1, 2, 3];
+  for i in &mut v {	//还可修改元素
+      *i += 10
+  }
+  ```
+
+### 9. 拓展：存储不同类型元素的方法
+
+* 使用枚举类型 / 特征对象
+
+* 枚举实现
+
+  ```rust
+  #[derive(Debug)]
+  enum IpAddr {
+      V4(String),
+      V6(String)
+  }
+  fn main() {
+      let v = vec![
+          IpAddr::V4("127.0.0.1".to_string()),
+          IpAddr::V6("::1".to_string())
+      ];
+  
+      for ip in v {
+          show_addr(ip)
+      }
+  }
+  
+  fn show_addr(ip: IpAddr) {
+      println!("{:?}",ip);
+  }
+  ```
+
+* 特征对象实现
+
+  ```rust
+  trait IpAddr {
+      fn display(&self);
+  }
+  
+  struct V4(String);
+  impl IpAddr for V4 {
+      fn display(&self) {
+          println!("ipv4: {:?}",self.0)
+      }
+  }
+  struct V6(String);
+  impl IpAddr for V6 {
+      fn display(&self) {
+          println!("ipv6: {:?}",self.0)
+      }
+  }
+  
+  fn main() {
+      let v: Vec<Box<dyn IpAddr>> = vec![
+          Box::new(V4("127.0.0.1".to_string())),
+          Box::new(V6("::1".to_string())),
+      ];
+  
+      for ip in v {
+          ip.display();
+      }
+  }
+  ```
+
+  * 手动指定类型：`Vec<Box<dyn IpAddr>>`
+  * 为 `V4` 和 `V6` 都实现了特征 `IpAddr`
+  * 将它俩的实例用 `Box::new()` 包裹后，成功存在了数组 `v` 中
+
+* 在实际使用场景中，**特征对象数组要比枚举数组常见很多**
+
+  * 主要原因在于特征对象非常灵活，而编译器对枚举的限制较多，且无法动态增加类型
+
+## 10.2 HashMap：KV 存储
+
+* 概述
+
+  * 存储的是一一映射的 `KV` 键值对，并提供了平均复杂度为 `O(1)` 的查询方法
+  * 动态变长、内聚的（<K,V>类型一致）
+  *  `HashMap` 并没有包含在 Rust 的 `prelude` 中，需要 `use std::collections::HashMap;`
+
+* 类型
+
+  * `HashMap<K,V>`
+
+* 创建
+
+  * `HashMap::new()`
+
+    ```rust
+    use std::collections::HashMap;
+    
+    // 创建一个HashMap，用于存储宝石种类和对应的数量
+    let mut my_gems = HashMap::new();
+    ```
+
+  * `HashMap::with_capacity(capacity)`
+
+    * 创建指定大小的 `HashMap`
+    * 如果预先知道要存储的 `KV` 对个数, 使用该法，避免频繁的内存分配和拷贝，提升性能
+
+  * 使用迭代器和 collect 方法创建
+
+    * 将合适类型的 `Vec` 类型变为 `HashMap` 类型
+
+    * 例：将 `Vec<(String, u32)>` 中的数据快速写入到 `HashMap<String, u32>` 中
+
+      * `into_iter` 方法将列表转为迭代器
+      * 接着通过 `collect` 进行收集
+        * `collect` 方法在内部实际上支持生成多种类型的目标集合，因此我们需要通过类型标注 `HashMap<_,_>` 来告诉编译器：请帮我们收集为 `HashMap` 集合类型
+        * 具体的 `KV` 类型，由编译器自己推导
+
+      ```rust
+      fn main() {
+          use std::collections::HashMap;
+      
+          let teams_list = vec![
+              ("中国队".to_string(), 100),
+              ("美国队".to_string(), 10),
+              ("日本队".to_string(), 50),
+          ];
+      
+          let teams_map: HashMap<_,_> = teams_list.into_iter().collect();
+      
+          println!("{:?}",teams_map)
+      }
+      ```
+
+* 插入
+
+  * `.insert()`
+
+    ```rust
+    my_gems.insert("红宝石", 1);
+    my_gems.insert("蓝宝石", 2);
+    my_gems.insert("河边捡的误以为是宝石的破石头", 18);
+    ```
+
+* 所有权转移
+  * `HashMap` 的所有权规则与其它 Rust 类型没有区别：
+    - 若类型实现 `Copy` 特征，该类型会被复制进 `HashMap`，因此无所谓所有权
+    - 若没实现 `Copy` 特征，所有权将被转移给 `HashMap` 中
+  * **如果你使用引用类型放入 HashMap 中**，请确保该引用的生命周期至少跟 `HashMap` 活得一样久
+
+* 查询 
+
+  *  `.get() `
+
+    * 返回值会用 `Option<&T>` 包裹；如果查询失败，会返回 `None`
+
+    ```rust
+    use std::collections::HashMap;
+    
+    let mut scores = HashMap::new();
+    
+    scores.insert(String::from("Blue"), 10);
+    scores.insert(String::from("Yellow"), 50);
+    
+    let team_name = String::from("Blue");
+    let score: Option<&i32> = scores.get(&team_name);//注意返回类型
+    ```
+
+* 遍历 K-V 对
+
+  ```rust
+  use std::collections::HashMap;
+  
+  let mut scores = HashMap::new();
+  
+  scores.insert(String::from("Blue"), 10);
+  scores.insert(String::from("Yellow"), 50);
+  
+  for (key, value) in &scores {
+      println!("{}: {}", key, value);
+  }
+  ```
+
+* 更新值
+
+  ```rust
+  fn main() {
+      use std::collections::HashMap;
+  
+      let mut scores = HashMap::new();
+  
+      scores.insert("Blue", 10);
+  
+      // 覆盖已有的值
+      let old = scores.insert("Blue", 20);
+      assert_eq!(old, Some(10));
+  
+      // 查询新插入的值
+      let new = scores.get("Blue");
+      assert_eq!(new, Some(&20));
+  
+      // 查询Yellow对应的值，若不存在则插入新值
+      let v = scores.entry("Yellow").or_insert(5);
+      assert_eq!(*v, 5); // 不存在，插入5
+  
+      // 查询Yellow对应的值，若不存在则插入新值
+      let v = scores.entry("Yellow").or_insert(50);
+      assert_eq!(*v, 5); // 已经存在，因此50没有插入
+  }
+  ```
+
+* 哈希函数
+
+  * 实现 `std::cmp::Eq` 特征的类型，不可以用作 `HashMap` 的 `Key`
+
+    * 比如：f32 和 f64 浮点数
+
+  * 目前，`HashMap` 使用的哈希函数是 `SipHash`，它的性能不是很高，但是安全性很高。
+
+    * `SipHash` 在中等大小的 `Key` 上，性能相当不错，但是对于小型的 `Key` （例如整数）或者大型 `Key` （例如字符串）来说，性能还是不够好
+
+  * 高性能三方库
+
+    * 可以去 [`crates.io`](https://crates.io/) 上寻找其它的哈希函数实现，替换掉默认的哈希函数
+
+      ```rust
+      use std::hash::BuildHasherDefault;
+      use std::collections::HashMap;
+      // 引入第三方的哈希函数
+      use twox_hash::XxHash64;
+      
+      // 指定HashMap使用第三方的哈希函数XxHash64，防止特型的第三个参数中
+      let mut hash: HashMap<_, _, BuildHasherDefault<XxHash64>> = Default::default();
+      hash.insert(42, "the answer");
+      assert_eq!(hash.get(&42), Some(&"the answer"));
+      ```
+
+# 11.类型转换（看不懂）
+
+## 1. `as` 转换
+
+* 数值类型的转换
+
+* 因为每个类型能表达的数据范围不同，如果把范围较大的类型转换成较小的类型，会造成错误，丢失数据
+
+  ```rust
+  fn main() {
+     let a = 3.1 as i8;
+     let b = 100_i8 as i32;
+     let c = 'a' as u8; // 将字符'a'转换为整数，97
+  
+     println!("{},{},{}",a,b,c)
+  }
+  ```
+
+## 2. `.TryInto()`
+
+* 数值类型的转换
+
+* `try_into` 会尝试进行一次转换，并返回一个 `Result`，此时就可以对其进行相应的错误处理
+
+  ```rust
+  use std::convert::TryInto;
+  
+  fn main() {
+     let a: u8 = 10;
+     let b: u16 = 1500;
+  
+     let b_: u8 = b.try_into().unwrap();
+  
+     if a < b_ {
+       println!("Ten is less than one hundred.");
+     }
+  }
+  ```
+
+## 3. 通用类型转换
+
+* 首先，在匹配特征时，不会做任何强制转换(除了方法)
+  * 一个类型 `T` 可以强制转换为 `U`，不代表 `impl T` 可以强制转换为 `impl U`
+* 点操作符
+
+# 12. 返回值和错误处理
+
+* 在很多情况下，Rust 需要你承认自己的代码可能会出错，并提前采取行动，来处理这些错误
+* 主要分为两类
+  * **可恢复错误**，通常用于从系统全局角度来看可以接受的错误
+    * `Result<T, E>` 
+    * 例如处理用户的访问、操作等错误，这些错误只会影响某个用户自身的操作进程，而不会对系统的全局稳定性产生影响
+  * **不可恢复错误**，通常是全局性或者系统性的错误
+    * `panic!` 
+    * 例如数组越界访问，系统启动时发生了影响启动流程的错误等等，这些错误的影响往往对于系统来说是致命的
+
+## 1. `panic!`
+
+* 当调用执行该宏时，程序会：
+
+  * **打印出一个错误信息**
+  * **展开报错点往前的函数调用堆栈**
+  * **最后退出程序**
+
+* 一定是不可恢复的错误，才调用 `panic!` 处理，使程序崩溃退出
+
+  * 所以，**只有当你不知道该如何处理时，再去调用 panic!**
+
+* backtrace 栈展开
+
+  * 回溯栈上数据和函数调用（逆序排序），给出充分的报错信息和栈调用信息
+
+  * 命令：debug标志开启下，`RUST_BACKTRACE=1 cargo run` 
+
+  * 在真实场景中，错误往往涉及到很长的调用链甚至会深入第三方库，如果没有栈展开技术，错误将难以跟踪处理
+
+    ```rust
+    thread 'main' panicked at 'index out of bounds: the len is 3 but the index is 99', src/main.rs:4:5
+    stack backtrace:
+       0: rust_begin_unwind
+                 at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/std/src/panicking.rs:517:5
+       1: core::panicking::panic_fmt
+                 at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/panicking.rs:101:14
+       2: core::panicking::panic_bounds_check
+                 at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/panicking.rs:77:5
+       3: <usize as core::slice::index::SliceIndex<[T]>>::index
+                 at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/slice/index.rs:184:10
+       4: core::slice::index::<impl core::ops::index::Index<I> for [T]>::index
+                 at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/slice/index.rs:15:9
+       5: <alloc::vec::Vec<T,A> as core::ops::index::Index<I>>::index
+                 at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/alloc/src/vec/mod.rs:2465:9
+       6: world_hello::main
+                 at ./src/main.rs:4:5
+       7: core::ops::function::FnOnce::call_once
+                 at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/ops/function.rs:227:5
+    note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+    ```
+
+* 两种终止方式
+
+  * **栈展开**
+
+    * 默认的方式，可以打印出重复的报错和调试信息
+    * Rust 会回溯栈上数据和函数调用，做更多的善后工作
+
+  * **直接终止**
+
+    * 不清理数据就直接退出程序，善后工作交与操作系统来负责
+
+    * 当你关心最终编译出的二进制可执行文件大小时，那么可以尝试去使用直接终止的方式
+
+    * 调用：
+
+      * 修改 `Cargo.toml` 文件，实现在  `release` 模式下遇到 `panic` 直接终止
+
+        ```shell
+        [profile.release]
+        panic = 'abort'
+        ```
+
+* 线程 panic 
+
+  * 如果是 `main` 线程，则程序会终止，如果是其它子线程，该线程会终止，但是不会影响 `main` 线程
+  * 因此，尽量不要在 `main` 线程中做太多任务，将这些任务交由子线程去做
+    * 就算子线程 `panic` ，也不会导致整个程序的结束
+
+* 何时该使用 `panic!`
+
+  * 常见搭配 
+
+    * `.unwrap()`，`.expect() `：隐式调用 `panic!`
+
+      ```rust
+      use std::net::IpAddr;
+      let home: IpAddr = "127.0.0.1".parse().unwrap();
+      ```
+
+      * `parse` 方法试图将字符串 `"127.0.0.1" `解析为一个 IP 地址类型 `IpAddr`，它返回一个 `Result<IpAddr, E>` 类型
+      * 如果解析成功，则把 `Ok(IpAddr)` 中的值赋给 `home`，如果失败，则不处理 `Err(E)`，而是直接 `panic!`
+
+  * <u>示例、原型、测试</u>场景下，需要快速地搭建代码，错误处理会拖慢编码的速度，所以不是特别有必要
+
+    * 因此通过 `unwrap`、`expect` 等方法来处理是最快的
+    * 同时，当我们回头准备做错误处理时，可以全局搜索这些方法，不遗漏地进行替换
+
+  * 你确切的知道你的程序是正确时，可以使用 `panic!`
+
+    * 当我们的代码注定是正确时，你可以用 `unwrap` 等方法直接进行处理，反正也不可能 `panic` 
+    * 因为 `panic` 的触发方式比错误处理要简单，因此可以让代码更清晰，可读性也更加好
+
+* 可能导致的全局有害状态
+  * 非预期的错误（预期的错误则进行处理）
+  * 后续代码的运行会受到显著影响
+  * 内存安全的问题
+
+## 2. `Result<T,E>`
+
+* 更温和的处理方式，不引发程序错误，而是预测并捕捉错误，然后处理
+
+* `Result<T, E>` 
+
+  * 枚举类型，定义如下：
+
+    ```rust
+    enum Result<T, E> {
+        Ok(T),
+        Err(E),
+    }
+    ```
+
+    *  `T` 
+      * 代表成功时，存入的正确值的类型，存放方式是 `Ok(T)`
+    * `E`
+      * 代表错误时，存入的错误值，存放方式是 `Err(E)`
+
+  * 
