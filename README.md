@@ -11,6 +11,7 @@
   * [2022.11.07](#2022_11_07)
   * [2022.11.08](#2022_11_08)
   * [2022.11.10](#2022_11_10)
+  * [2022.11.12](#2022_11_12)
 * Rust学习笔记
   * [RustNote](./note/RustNote.md)
 * rustlings 代码
@@ -58,3 +59,11 @@
 * 阅读   The Rustlings Course 泛型和特征、集合类型、类型转换、返回值和错误处理章节
 * 整理并完成 rust语言上述部分的笔记
 * 完成rustlings：traits, strings 部分
+
+## 2022_11_12
+
+* 阅读   The Rustlings Course 包和模块，注释和文档章节
+* 整理并完成 rust语言上述部分的笔记
+* 完成rustlings：enums, modules, hashmaps
+
+ 

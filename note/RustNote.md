@@ -3679,121 +3679,1138 @@ fn main() {
 
 ## 1. `panic!`
 
-* 当调用执行该宏时，程序会：
+### 1）概述
 
+* 当调用执行该宏时，程序会：
   * **打印出一个错误信息**
   * **展开报错点往前的函数调用堆栈**
   * **最后退出程序**
 
 * 一定是不可恢复的错误，才调用 `panic!` 处理，使程序崩溃退出
-
   * 所以，**只有当你不知道该如何处理时，再去调用 panic!**
 
-* backtrace 栈展开
 
-  * 回溯栈上数据和函数调用（逆序排序），给出充分的报错信息和栈调用信息
+### 2）backtrace 栈展开
 
-  * 命令：debug标志开启下，`RUST_BACKTRACE=1 cargo run` 
+* 回溯栈上数据和函数调用（逆序排序），给出充分的报错信息和栈调用信息
 
-  * 在真实场景中，错误往往涉及到很长的调用链甚至会深入第三方库，如果没有栈展开技术，错误将难以跟踪处理
+* 命令：debug标志开启下，`RUST_BACKTRACE=1 cargo run` 
 
-    ```rust
-    thread 'main' panicked at 'index out of bounds: the len is 3 but the index is 99', src/main.rs:4:5
-    stack backtrace:
-       0: rust_begin_unwind
-                 at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/std/src/panicking.rs:517:5
-       1: core::panicking::panic_fmt
-                 at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/panicking.rs:101:14
-       2: core::panicking::panic_bounds_check
-                 at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/panicking.rs:77:5
-       3: <usize as core::slice::index::SliceIndex<[T]>>::index
-                 at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/slice/index.rs:184:10
-       4: core::slice::index::<impl core::ops::index::Index<I> for [T]>::index
-                 at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/slice/index.rs:15:9
-       5: <alloc::vec::Vec<T,A> as core::ops::index::Index<I>>::index
-                 at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/alloc/src/vec/mod.rs:2465:9
-       6: world_hello::main
-                 at ./src/main.rs:4:5
-       7: core::ops::function::FnOnce::call_once
-                 at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/ops/function.rs:227:5
-    note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
-    ```
+* 在真实场景中，错误往往涉及到很长的调用链甚至会深入第三方库，如果没有栈展开技术，错误将难以跟踪处理
 
-* 两种终止方式
+  ```rust
+  thread 'main' panicked at 'index out of bounds: the len is 3 but the index is 99', src/main.rs:4:5
+  stack backtrace:
+     0: rust_begin_unwind
+               at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/std/src/panicking.rs:517:5
+     1: core::panicking::panic_fmt
+               at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/panicking.rs:101:14
+     2: core::panicking::panic_bounds_check
+               at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/panicking.rs:77:5
+     3: <usize as core::slice::index::SliceIndex<[T]>>::index
+               at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/slice/index.rs:184:10
+     4: core::slice::index::<impl core::ops::index::Index<I> for [T]>::index
+               at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/slice/index.rs:15:9
+     5: <alloc::vec::Vec<T,A> as core::ops::index::Index<I>>::index
+               at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/alloc/src/vec/mod.rs:2465:9
+     6: world_hello::main
+               at ./src/main.rs:4:5
+     7: core::ops::function::FnOnce::call_once
+               at /rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/library/core/src/ops/function.rs:227:5
+  note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+  ```
 
-  * **栈展开**
+### 3）两种终止方式
 
-    * 默认的方式，可以打印出重复的报错和调试信息
-    * Rust 会回溯栈上数据和函数调用，做更多的善后工作
+* **栈展开**
 
-  * **直接终止**
+  * 默认的方式，可以打印出重复的报错和调试信息
+  * Rust 会回溯栈上数据和函数调用，做更多的善后工作
 
-    * 不清理数据就直接退出程序，善后工作交与操作系统来负责
+* **直接终止**
 
-    * 当你关心最终编译出的二进制可执行文件大小时，那么可以尝试去使用直接终止的方式
+  * 不清理数据就直接退出程序，善后工作交与操作系统来负责
 
-    * 调用：
+  * 当你关心最终编译出的二进制可执行文件大小时，那么可以尝试去使用直接终止的方式
 
-      * 修改 `Cargo.toml` 文件，实现在  `release` 模式下遇到 `panic` 直接终止
+  * 调用：
 
-        ```shell
-        [profile.release]
-        panic = 'abort'
-        ```
+    * 修改 `Cargo.toml` 文件，实现在  `release` 模式下遇到 `panic` 直接终止
 
-* 线程 panic 
-
-  * 如果是 `main` 线程，则程序会终止，如果是其它子线程，该线程会终止，但是不会影响 `main` 线程
-  * 因此，尽量不要在 `main` 线程中做太多任务，将这些任务交由子线程去做
-    * 就算子线程 `panic` ，也不会导致整个程序的结束
-
-* 何时该使用 `panic!`
-
-  * 常见搭配 
-
-    * `.unwrap()`，`.expect() `：隐式调用 `panic!`
-
-      ```rust
-      use std::net::IpAddr;
-      let home: IpAddr = "127.0.0.1".parse().unwrap();
+      ```shell
+      [profile.release]
+      panic = 'abort'
       ```
 
-      * `parse` 方法试图将字符串 `"127.0.0.1" `解析为一个 IP 地址类型 `IpAddr`，它返回一个 `Result<IpAddr, E>` 类型
-      * 如果解析成功，则把 `Ok(IpAddr)` 中的值赋给 `home`，如果失败，则不处理 `Err(E)`，而是直接 `panic!`
+### 4）线程 panic 
 
-  * <u>示例、原型、测试</u>场景下，需要快速地搭建代码，错误处理会拖慢编码的速度，所以不是特别有必要
+* 如果是 `main` 线程，则程序会终止，如果是其它子线程，该线程会终止，但是不会影响 `main` 线程
+* 因此，尽量不要在 `main` 线程中做太多任务，将这些任务交由子线程去做
+  * 就算子线程 `panic` ，也不会导致整个程序的结束
 
-    * 因此通过 `unwrap`、`expect` 等方法来处理是最快的
-    * 同时，当我们回头准备做错误处理时，可以全局搜索这些方法，不遗漏地进行替换
+### 5）何时该使用 `panic!`
 
-  * 你确切的知道你的程序是正确时，可以使用 `panic!`
+* 常见搭配 
 
-    * 当我们的代码注定是正确时，你可以用 `unwrap` 等方法直接进行处理，反正也不可能 `panic` 
-    * 因为 `panic` 的触发方式比错误处理要简单，因此可以让代码更清晰，可读性也更加好
+  * `.unwrap()`，`.expect() `：隐式调用 `panic!`
 
-* 可能导致的全局有害状态
-  * 非预期的错误（预期的错误则进行处理）
-  * 后续代码的运行会受到显著影响
-  * 内存安全的问题
+    ```rust
+    use std::net::IpAddr;
+    let home: IpAddr = "127.0.0.1".parse().unwrap();
+    ```
+
+    * `parse` 方法试图将字符串 `"127.0.0.1" `解析为一个 IP 地址类型 `IpAddr`，它返回一个 `Result<IpAddr, E>` 类型
+    * 如果解析成功，则把 `Ok(IpAddr)` 中的值赋给 `home`，如果失败，则不处理 `Err(E)`，而是直接 `panic!`
+
+* <u>示例、原型、测试</u>场景下，需要快速地搭建代码，错误处理会拖慢编码的速度，所以不是特别有必要
+
+  * 因此通过 `unwrap`、`expect` 等方法来处理是最快的
+  * 同时，当我们回头准备做错误处理时，可以全局搜索这些方法，不遗漏地进行替换
+
+* 你确切的知道你的程序是正确时，可以使用 `panic!`
+
+  * 当我们的代码注定是正确时，你可以用 `unwrap` 等方法直接进行处理，反正也不可能 `panic` 
+  * 因为 `panic` 的触发方式比错误处理要简单，因此可以让代码更清晰，可读性也更加好
+
+### 6）可能导致的全局有害状态
+
+* 非预期的错误（预期的错误则进行处理）
+* 后续代码的运行会受到显著影响
+* 内存安全的问题
 
 ## 2. `Result<T,E>`
 
 * 更温和的处理方式，不引发程序错误，而是预测并捕捉错误，然后处理
 
-* `Result<T, E>` 
 
-  * 枚举类型，定义如下：
+### 1）`Result<T, E>` 
+
+* 枚举类型，定义如下：
+
+  ```rust
+  enum Result<T, E> {
+      Ok(T),
+      Err(E),
+  }
+  ```
+
+  *  `T` 
+    * 代表成功时，存入的正确值的类型，存放方式是 `Ok(T)`
+  * `E`
+    * 代表错误时，存入的错误值，存放方式是 `Err(E)`
+
+* 如何获知变量类型或者函数的返回类型
+
+  * 查询标准库或者三方库文档
+
+  * 还可以尝试故意标记一个错误的类型，然后让编译器告诉你
 
     ```rust
-    enum Result<T, E> {
-        Ok(T),
-        Err(E),
+    let f: u32 = File::open("hello.txt");
+    /*错误提示如下：
+     mismatched types
+     --> src/main.rs:4:18
+      |
+    4 |     let f: u32 = File::open("hello.txt");
+      |                  ^^^^^^^^^^^^^^^^^^^^^^^ expected u32, found enum
+    `std::result::Result`
+      |
+      = note: expected type `u32`
+                 found type `std::result::Result<std::fs::File, std::io::Error>`
+    编译器告诉正确返回类型：std::result::Result<std::fs::File, std::io::Error>
+    ```
+
+### 2）处理错误返回值
+
+* 直接 `panic` 还是过于粗暴，因为实际上 IO 的错误有很多种，我们需要对<u>部分错误进行特殊处理</u>
+
+* 例：
+
+  ```rust
+  use std::fs::File;
+  use std::io::ErrorKind;
+  
+  fn main() {
+      let f = File::open("hello.txt");
+  
+      let f = match f {
+          Ok(file) => file,
+          Err(error) => match error.kind() {
+              ErrorKind::NotFound => match File::create("hello.txt") {
+                  Ok(fc) => fc,
+                  Err(e) => panic!("Problem creating the file: {:?}", e),
+              },
+              other_error => panic!("Problem opening the file: {:?}", other_error),
+          },
+      };
+  }
+  ```
+
+  * 在匹配出 `error` 后，又对 `error` 进行详细的匹配解析
+  * 如果是文件不存在错误 `ErrorKind::NotFound`，就创建文件`File::create` 
+    * `File::create` 也是返回 `Result`，因此继续用 `match` 对其结果进行处理：创建成功，将新的文件句柄赋值给 `f`，如果失败，则 `panic`
+  * 剩下的错误，一律 `panic`
+
+### 3）`.unwrap()`和 `.expect()`：简单处理法
+
+* `.unwrap()`
+  
+  * 如果返回成功，就将 Ok(T) 中的值<u>取出来</u>，
+  * 如果失败，就直接 panic
+*  `.expect()`
+
+  * 跟`.unwarp()` 功能类似，不过 panic 时，会带上自定义的错误提示信息，相当于重载了错误打印的函数
+
+  ```rust
+  use std::fs::File;
+  
+  fn main() {
+      let f = File::open("hello.txt").unwrap();
+      let f = File::open("hello.txt").expect("Failed to open hello.txt");
+  }
+  ```
+
+### 4）错误传播
+
+* 原因
+
+  * 一个设计良好的程序，一个功能涉及十几层的函数调用都有可能。
+  * 故错误处理也往往不是哪里调用出错，就在哪里处理。
+  * 实际应用中，大概率会把错误<u>层层上传</u>然后交给<u>调用链的上游函数进行处理</u>，错误传播将极为常见
+
+* `?` 宏：简化错误传播
+
+  * 用法：对应函数后面加 `?` 即可
+
+    ```rust
+    use std::fs::File;
+    use std::io;
+    use std::io::Read;
+    
+    fn read_username_from_file() -> Result<String, io::Error> {
+        let mut f = File::open("hello.txt")?;
+        let mut s = String::new();
+        f.read_to_string(&mut s)?;
+        Ok(s)
     }
     ```
 
-    *  `T` 
-      * 代表成功时，存入的正确值的类型，存放方式是 `Ok(T)`
-    * `E`
-      * 代表错误时，存入的错误值，存放方式是 `Err(E)`
+  * 作用
 
-  * 
+    * 跟以下 `match` 语句几乎一样，若是错误值，直接返回error，自动实现错误传播
+
+    ```rust
+    let mut f = match f {
+        // 打开文件成功，将file句柄赋值给f
+        Ok(file) => file,
+        // 打开文件失败，将错误返回(向上传播)
+        Err(e) => return Err(e),
+    };
+    ```
+
+    * 可以自动进行类型提升（转换）
+
+      ```rust
+      fn open_file() -> Result<File, Box<dyn std::error::Error>> {
+          let mut f = File::open("hello.txt")?;
+          Ok(f)
+      }
+      ```
+
+      * 上面代码中 `File::open` 报错时返回的错误是 `std::io::Error` 类型；但是 `open_file` 函数返回的错误类型是 `std::error::Error` 的特征对象
+      * `?` 将 `std::io::Error` 自动转换为 `std::error::Error` 
+        * 因为 `std::io::Error` 实现了``std:error::Error`，故可以转换
+      * 实现
+        * 在于标准库中定义的 `From` 特征，该特征有一个方法 `from`，用于把一个类型转成另外一个类型，`?` 可以自动调用该方法，然后进行隐式类型转换
+        * 因此只要函数返回的错误 `ReturnError` 实现了 `From<OtherError>` 特征，那么 `?` 就会自动把 `OtherError` 转换为 `ReturnError`
+      * 作用
+        * 这种转换非常好用，意味着你可以用一个大而全的 `ReturnError` 来覆盖所有错误类型，只需要为各种子错误类型实现这种转换即可
+
+  * 链式调用
+
+    ```rust
+    use std::fs::File;
+    use std::io;
+    use std::io::Read;
+    
+    fn read_username_from_file() -> Result<String, io::Error> {
+        let mut s = String::new();
+    
+        File::open("hello.txt")?.read_to_string(&mut s)?;
+    
+        Ok(s)
+    }
+    ```
+
+  * 用于 Option 的返回
+
+    * `?` 不仅仅可以用于 `Result` 的传播，还能用于 `Option` 的传播
+
+    * 功能
+
+      * 若通过，提取出类型返回；若为`None`，直接 return `None`
+
+      ```rust
+      fn first(arr: &[i32]) -> Option<&i32> {
+         let v = arr.get(0)?;
+         Some(v)
+      }
+      ```
+
+* 带返回值的 main 函数
+
+  * 实际上 Rust 还支持另外一种形式的 `main` 函数
+
+    * 这样就能使用 `?` 提前返回
+
+    ```rust
+    use std::error::Error;
+    use std::fs::File;
+    
+    fn main() -> Result<(), Box<dyn Error>> {
+        let f = File::open("hello.txt")?;
+    
+        Ok(())
+    }
+    ```
+
+    * `Box<dyn Error>` 特征对象：
+      * 因为 `std::error:Error` 是 Rust 中抽象层次最高的错误，其它标准库中的错误都实现了该特征，因此我们可以用该特征对象代表一切错误
+      * `main` 函数中调用任何标准库函数发生错误，都可以通过 `Box<dyn Error>` 这个特征对象进行返回
+
+# 13. 包和模块
+
+## 13.1 概述
+
+* 当工程文件变大时，将代码写到一个甚至几个文件中，是十分糟糕的做法
+  * 单个文件过大，导致打开、翻页速度大幅变慢
+  * 查询和定位效率大幅降低
+  * 只有一个代码层次：函数，难以维护和协作
+  * 容易滋生 Bug
+* 同时，将大的代码文件<u>拆分成包和模块</u>，还允许我们实现<u>代码抽象和复用</u>
+  * 将你的<u>代码封装好</u>后提供给用户，那么用户只需要<u>调用公共接口</u>即可，无需知道内部该如何实现
+* Rust 提供了相应概念，用于代码的组织管理：
+  * Module (模块)：
+    * 可以被认为是真实项目中的<u>代码组织单元</u>
+    * 可以一个文件多个模块，也可以一个文件一个模块
+    * 允许你控制作用域和路径的私有性
+  * Crate：一个由<u>多个 Modules</u>组成的<u>树形结构</u>
+    * 可以<u>作为三方库</u>进行分发，也可以<u>生成可执行文件进行运行</u>
+  * Packages：一个 `Cargo` 提供的 `feature`，可以用来<u>构建、测试和分享</u>Crate
+
+## 13.2 Crate & Package
+
+### 1. 概述
+
+Rust 为我们提供了强大的包管理工具
+
+* **Package**：可以用来构建、测试和分享Crate
+* **WorkSpace**：对于大型项目，可以进一步将<u>多个Crate联合在一起</u>，组织成工作空间
+* **Crate**：一个由多个模块组成的树形结构，可以作为三方库进行分发，也可以生成可执行文件进行运行
+* **Module**：可以一个文件多个模块，也可以一个文件一个模块，模块可以被认为是真实项目中的代码组织单元
+
+### 2. Crate
+
+* Crate是一个<u>独立的可编译单元</u>，由<u>多个 Modules</u>组成的<u>树形结构</u>
+  * 有两种形式：二进制项和库
+  * 二进制Crate
+    * 编译后，生成一个<u>二进制可执行程序</u>
+    * 必须有一个 `main` 函数来定义当程序被执行的时候所需要做的事情
+  * 库Crate
+    * 编译后，生成一个<u>库 `library`</u>
+    * *库* 并没有 `main` 函数，它们也不会编译为可执行程序，它们提供一些诸如函数之类的东西
+* *crate root* 
+  * 是一个源文件，Rust 编译器以它为起始点，并构成你的 crate 的<u>根模块</u>
+* 一个Crate会将相关联的功能<u>打包在一起</u>，使得该功能可以很方便的在多个项目中<u>分享</u>
+* 同一个Crate中，不能有同名的类型，但是在不同包中可以
+  * 通过各自Crate的命名空间访问，对于编译器而言，这两者的边界非常清晰，不会存在引用歧义
+
+### 3. Package
+
+#### 1） `Package` 就是一个项目工程
+
+* 它包含有
+  * 一个独立的 `Cargo.toml` 文件，阐述如何去构建这些 crate
+  * 因为功能性被组织在一起的一个或多个Crate
+    * 一个 `Package` 只能包含**至多一个**库Crate，和**任意多个**二进制Crate
+    * 但是必须至少包含一个 crate（无论是库的还是二进制的）
+
+#### 2）`Caogo` 创建 `Package`
+
+* 自带一个二进制Crate
+
+  ```shell
+  $ cargo new my-project	#默认二进制
+       Created binary (application) `my-project` package
+  $ ls my-project	
+  Cargo.toml
+  src
+  $ ls my-project/src
+  main.rs
+  ```
+
+  * Cargo 为我们创建了一个名称是 `my-project` 的 `Package`
+    * 里边包含 `Cargo.toml` 文件和 `src/main.rs` 文件
+  * Cargo 默认遵循一个约定：
+    * **src/main.rs** 就是一个<u>与Package同名（这里是`my-project`）的二进制 crate</u> 的 <u>**crate 根**</u>
+      * 所有的代码执行都从该文件中的 `fn main()` 函数开始
+    * 即：如果有**src/main.rs** 文件，则默认包含了一个名字与当前 `Package`同名（这里是`my-project`）的二进制  `Crate`，且该 `Crate` 的根模块为: src/main.rs
+    * 所以查看`Cargo.toml` 文件，会发现并没有提到 **src/main.rs** 作为程序的入口，因为已经默认规定了
+  * 使用 `cargo run` 可以运行该项目，输出：`Hello, world!`
+
+* 自带一个库Crate
+
+  ```shell
+  $ cargo new my-lib --lib  #需添加 --lib
+       Created library `my-lib` package
+  $ ls my-lib
+  Cargo.toml
+  src
+  $ ls my-lib/src
+  lib.rs
+  ```
+
+  * Cargo 为我们创建了一个名称是 `my-lib` 的 `Package`
+    * 里边包含 `Cargo.toml` 文件和 `src/lib.rs` 文件
+  * 同样的，Cargo 知道如果Project目录中包含 ***src/lib.rs***，则Project带有与其<u>同名的库 crate</u>，且 <u>*src/lib.rs* 是 crate 根</u>
+
+* 注
+
+  * 如果一个 `Package` 同时拥有 `src/main.rs` 和 `src/lib.rs`，那就意味着它包含两个crate：库crate和二进制crate，<u>这两个crate名也都是 `my-project` —— 都与 `Package` 同名</u>
+
+#### 3）典型 Package 结构
+
+* 一个真实项目中典型的 `Package`，会包含多个二进制 `crate`
+
+  * 这些 crate 文件被放在 `src/bin` 目录下
+  * 每一个文件都是独立的二进制crate
+
+* 同时也会包含一个库 crate，该 crate 只能存在一个 `src/lib.rs` 文件
+
+* Rust 的标准目录结构
+
+  ```css
+  .
+  ├── Cargo.toml
+  ├── Cargo.lock
+  ├── src
+  │   ├── main.rs
+  │   ├── lib.rs
+  │   └── bin
+  │       └── main1.rs
+  │       └── main2.rs
+  ├── tests
+  │   └── some_integration_tests.rs
+  ├── benches
+  │   └── simple_bench.rs
+  └── examples
+      └── simple_example.rs
+  ```
+
+  * 唯一库包：`src/lib.rs`
+  * 默认二进制包：`src/main.rs`，编译后生成的可执行文件与 `Package` 同名
+  * 其余二进制包：`src/bin/main1.rs` 和 `src/bin/main2.rs`，它们会分别生成一个<u>文件同名</u>的二进制可执行文件
+  * 集成测试文件：`tests` 目录下
+  * 基准性能测试 `benchmark` 文件：`benches` 目录下
+  * 项目示例：`examples` 目录下
+
+## 13.3 Module	
+
+### 1. 概述
+
+* 使用模块可以将Crate中的代码，按照<u>功能性进行重组</u>，最终实现更好的<u>可读性及易用性</u>
+* 还能非常灵活地去<u>控制代码的可见性</u>，进一步强化 Rust 的<u>安全性</u>。
+
+### 2. 模块是如何工作的
+
+* **从crate根节点开始**:
+  * 当编译一个crate, 编译器首先在crate根文件（通常，对于一个库crate而言是*src/lib.rs*，对于一个二进制crate而言是*src/main.rs*）中寻找需要被编译的代码。
+* **声明模块**
+  *  在<u>crate根文件</u>中，你可以声明一个新模块；
+  * 比如，你用 `mod garden`声明了一个叫做 `garden`的模块。编译器会在下列路径中<u>寻找模块代码</u>：
+    * 内联，在大括号`{}`中，当`mod garden`后方不是一个分号而是一个大括号
+    * 在文件 *src/garden.rs*
+    * 在文件 *src/garden/mod.rs*
+* **声明子模块**（可嵌套定义模块）
+  * 在除了crate根节点以外的<u>其他文件中</u>，你可以定义子模块。
+  * 比如，你可能在*src/garden.rs*中定义了`mod vegetables;`，编译器会在<u>以父模块命名的目录中</u>寻找子模块代码：
+    * 内联, 在大括号中，当`mod vegetables`后方不是一个分号而是一个大括号
+    * 在文件 *src/garden/vegetables.rs*
+    * 在文件 *src/garden/vegetables/mod.rs*
+  * 父子模块：如果模块 `A` 包含模块 `B`，那么 `A` 是 `B` 的父模块，`B` 是 `A` 的子模块
+* **模块中的代码路径**: 
+  * 一旦一个模块是你crate的一部分， 你可以在<u>隐私规则允许</u>的前提下，从同一个crate内的任意地方，通过<u>代码路径引用</u>该模块的代码。
+  * 举例而言，一个garden vegetables模块下的`Asparagus`类型可以在`crate::garden::vegetables::Asparagus`被找到。
+* **私有 vs 公用**
+  * 一个模块里的代码默认<u>对其父模块私有</u>
+  * 为了使一个模块公用，应当在声明时使用`pub mod`替代`mod`
+  * 为了使一个<u>公用模块</u>内部的<u>成员公用</u>，应当在声明前使用`pub`
+* **`use` 关键字**:
+  *  在一个作用域内，`use`关键字创建了<u>一个成员的快捷方式</u>，用来减少长路径的重复。
+  * 例如，在任何可以引用`crate::garden::vegetables::Asparagus`的作用域, 你可以通过 `use crate::garden::vegetables::Asparagus;`创建一个快捷方式，然后你就可以在作用域中只写`Asparagus`来使用该类型
+
+### 3. 例：创建嵌套模块
+
+* 使用 `cargo new --lib restaurant` 创建一个小餐馆，然后将以下代码放入 `src/lib.rs` 中：
+
+  ```rust
+  mod front_of_house {
+      mod hosting {
+          fn add_to_waitlist() {}
+  
+          fn seat_at_table() {}
+      }
+  
+      mod serving {
+          fn take_order() {}
+  
+          fn serve_order() {}
+  
+          fn take_payment() {}
+      }
+  }
+  ```
+
+  * 分析：
+    * 以上的代码创建了三个模块
+    * 模块中可以定义各种 Rust 类型，例如函数、结构体、枚举、特征等
+
+### 4. 模块树结构
+
+* 此时，该Crate的模块树结构如下
+  *  `crate` 包根是 `src/lib.rs` 文件
+  * 包根文件中的三个模块，分别形成了模块树的剩余部分
+
+```rust
+crate
+ └── front_of_house
+     ├── hosting
+     │   ├── add_to_waitlist
+     │   └── seat_at_table
+     └── serving
+         ├── take_order
+         ├── serve_order
+         └── take_payment
+```
+
+### 5. 通过路径引用模块
+
+* 想要调用一个函数，就需要知道它的路径
+
+* 在 Rust 中，路径有两种形式：
+
+  * **绝对路径**，从**Crate根**开始，路径名以Crate名或者 `crate` 作为开头
+  * **相对路径**，从**当前模块**开始，以 `self`，`super` 或当前<u>模块的标识符</u>作为开头
+
+* 例：接着上例，在 `lib.rs` 中，加入以下代码
+
+  ```rust
+  pub fn eat_at_restaurant() {
+      // 绝对路径
+      crate::front_of_house::hosting::add_to_waitlist();
+  
+      // 相对路径
+      front_of_house::hosting::add_to_waitlist();
+  }
+  ```
+
+  * 新的模块树
+
+    ```rust
+    crate
+     └── eat_at_restaurant
+     └── front_of_house
+         ├── hosting
+         │   ├── add_to_waitlist
+         │   └── seat_at_table
+         └── serving
+             ├── take_order
+             ├── serve_order
+             └── take_payment
+    ```
+
+  * `eat_at_restaurant` 是一个定义在包根中的函数，在该函数中使用了两种方式对 `add_to_waitlist` 进行调用
+
+    * 绝对路径引用：`crate::front_of_house::hosting::add_to_waitlist();`
+    * 相对路径引用：`front_of_house::hosting::add_to_waitlist();`
+      * 因为 `eat_at_restaurant` 和 `front_of_house` 都处于包根 `crate` 中，因此包根模块的函数，相对路径可以直接用这个包根模块中的子模块 `front_of_house` 作为开头
+
+* 绝对还是相对？
+
+  * 遵循一个原则：当代码被挪动位置时，尽量减少引用路径的修改
+    * ”整体“移动时，相对路径不变。调用者移动，被调者不移动时，绝对路径不变
+  * 如果不确定，你可以考虑优先使用绝对路径
+    * 因为调用的地方和定义的地方往往是分离的，而<u>定义的地方较少会变动</u>
+
+### 6. 代码可见性
+
+* 概述
+
+  * 模块不仅对于你组织代码很有用。他们还定义了 Rust 的 <u>私有性边界</u>：这条界线<u>不允许外部代码</u>了解、调用和依赖被封装的实现细节。
+    * Rust 中所有项目的作用域，都是<u>基于模块</u>的
+  * Rust 中<u>默认所有项</u>（函数、方法、结构体、枚举、模块和常量）<u>都是私有的</u>
+    * 具体规则为
+      * <u>父模块中的项不能</u>使用子模块中的<u>私有项</u>
+      * <u>子模块中的项可以</u>使用他们父模块中的项
+    * Rust 选择以这种方式来实现模块系统功能，因此默认<u>隐藏内部实现细节</u>
+    * 注意：模块的可见性
+      * 仅仅是允许其它模块去引用它，但不代表其内部项的可见性
+      * 想要引用它内部的项，还得继续将对应的项标记为 `pub`
+
+* `pub` 关键字
+
+  * 可以通过使用 `pub` 关键字来创建公共项，使子模块的内部部分<u>暴露给上级模块</u>
+
+  * 用法：
+
+    * 模块定义和内部项定义时，最前面加上 `pub` 即可
+
+      ```rust
+      mod front_of_house {
+          pub mod hosting {
+              pub fn add_to_waitlist() {}
+          }
+      }
+      ```
+
+* 结构体和枚举的可见性
+
+  * 这两个数据结构的成员字段，拥有完全不同的可见性设置规则
+    * 将结构体设置为 `pub`，但它的<u>所有字段依然是私有的</u>
+    * 将枚举设置为 `pub`，它的<u>所有字段也将对外可见</u>
+
+### 7. 相对路径详细
+
+* 相对路径有三种方式开始：`self`、`super`、或者当前模块下的模块名
+
+* 使用 `super` 引用模块
+
+  * 以当前模块的<u>父模块</u>为开始的引用方式
+
+  * 例：src/lib.rs 中
+
+    ```rust
+    fn serve_order() {}
+    
+    // 厨房模块
+    mod back_of_house {
+        fn fix_incorrect_order() {
+            cook_order();
+            super::serve_order();	//这里的super即指 crate
+        }
+    
+        fn cook_order() {}
+    }
+    ```
+
+* 使用 `self` 引用模块
+
+  * 以<u>自身模块</u>为开始的引用方式
+
+  * 例：src/lib.rs 中
+
+    ```rust
+    fn serve_order() {
+        self::back_of_house::cook_order()	//self即指 serve_order所属的crate模块
+    }
+    
+    mod back_of_house {
+        fn fix_incorrect_order() {
+            cook_order();
+            crate::serve_order();
+        }
+    
+        pub fn cook_order() {}
+    }
+    ```
+
+### 8. 模块与文件分离
+
+* 概述
+
+  * 在之前的例子中，我们所有的模块都定义在 `src/lib.rs` 中
+
+  * 但是当模块变多或者变大时，需要将<u>模块内容定义</u>放入一个<u>单独的文件</u>中，让代码更好维护
+    * 即让模块的声明和实现是分离的
+
+* 例
+
+  * 之前代码：src/lib.rs
+
+    ```rust
+    mod front_of_house {
+        mod hosting {
+            fn add_to_waitlist() {}
+    
+            fn seat_at_table() {}
+        }
+    
+        mod serving {
+            fn take_order() {}
+    
+            fn serve_order() {}
+    
+            fn take_payment() {}
+        }
+    }
+    
+    pub fn eat_at_restaurant() {
+        crate::front_of_house::hosting::add_to_waitlist();
+        front_of_house::hosting::add_to_waitlist();
+    }
+    ```
+
+  * 把 `front_of_house` 分离出来，其内部内容，放入一个单独的文件 `src/front_of_house.rs`
+
+    ```rust
+    mod hosting {
+        fn add_to_waitlist() {}
+    
+        fn seat_at_table() {}
+    }
+    
+    mod serving {
+        fn take_order() {}
+    
+        fn serve_order() {}
+    
+        fn take_payment() {}
+    }
+    ```
+
+  * 以下代码留在 `src/lib.rs` 中
+
+    ```rust
+    mod front_of_house;	//只留下模块定义的声明，模块内容编译器自己到对应地方找
+    
+    pub use crate::front_of_house::hosting;	//相当于把hosting引到当前的子包位置？
+    
+    pub fn eat_at_restaurant() {
+        hosting::add_to_waitlist();
+        hosting::add_to_waitlist();
+        hosting::add_to_waitlist();
+    }
+    ```
+
+    * 模块 `front_of_house` 的定义还是在 `src/lib.rs` 中，只不过模块的具体内容被移动到了 `src/front_of_house.rs` 文件中
+    * `mod front_of_house;` ：告诉 Rust 从另一个和<u>**模块同名**的文件</u>中加载该模块的内容
+
+## 13.4 `use` 及受限可见性
+
+* 在 Rust 中，可以使用 `use` 关键字，把<u>路径提前引入到当前作用域中</u>，随后的调用就可以省略该路径，极大地简化了代码。
+
+### 1. 基本引入方式
+
+#### 1）绝对路径，引入模块
+
+* src/lib.rs 中
+
+  ```rust
+  mod front_of_house {
+      pub mod hosting {
+          pub fn add_to_waitlist() {}
+      }
+  }
+  
+  use crate::front_of_house::hosting;
+  
+  pub fn eat_at_restaurant() {
+      hosting::add_to_waitlist();
+      hosting::add_to_waitlist();
+      hosting::add_to_waitlist();
+  }
+  ```
+
+  * 使用 `use` 和绝对路径的方式，将 `hosting` 模块引入到当前作用域中
+
+#### 2）相对路径，引入模块中的函数
+
+* 例：直接引入模块中的 `add_to_waitlist` 函数
+
+  ```rust
+  mod front_of_house {
+      pub mod hosting {
+          pub fn add_to_waitlist() {}
+      }
+  }
+  
+  use front_of_house::hosting::add_to_waitlist;
+  
+  pub fn eat_at_restaurant() {
+      add_to_waitlist();
+      add_to_waitlist();
+      add_to_waitlist();
+  }
+  ```
+
+#### 3）引入模块还是函数
+
+* 从使用简洁性来说，引入函数更甚一筹
+* 在某些时候，引入模块会更好：
+  * 需要引入<u>同一个模块的多个函数</u>
+  * 作用域中存在<u>同名函数</u>
+* 严格来说，对于引用方式并没有需要遵守的惯例，主要还是取决于你的喜好，不过我们建议：
+  * **优先使用最细粒度(引入函数、结构体等)的引用方式**
+  * **如果引起了某种麻烦(例如前面两种情况)，再使用引入模块的方式**。
+
+### 2. 避免同名引用
+
+* 使用模块引入的方式
+
+  * `模块::函数` 形式调用
+
+    ```rust
+    use std::fmt;
+    use std::io;
+    
+    fn function1() -> fmt::Result {
+        // --snip--
+    }
+    
+    fn function2() -> io::Result<()> {
+        // --snip--
+    }
+    ```
+
+* `as` 别名引用
+
+  * 使用 `as` 关键字来解决，赋予引入项一个全新的名称
+
+    ```rust
+    use std::fmt::Result;
+    use std::io::Result as IoResult;
+    
+    fn function1() -> Result {
+        // --snip--
+    }
+    
+    fn function2() -> IoResult<()> {
+        // --snip--
+    }
+    ```
+
+### 3. 引入项再导出
+
+* 当外部的模块项 `A` 被引入到当前模块中时，它的可见性<u>自动被设置为私有的</u>	
+  * 如果你希望允许其它外部代码引用模块项 `A`，那么使用 `pub use` ，可以对它进行再导出
+* 应用
+  * 例如统一使用一个模块来提供对外的 API，那该模块应该引入其它模块中的 API，然后提供进行再导出的功能。最终对于用户来说，所有的 API 都是由一个模块统一提供的
+
+### 4. 使用第三方 Crate
+
+* 前面的方法都是在 引入标准库模块或者自定义模块，现在来引入第三方crate中的模块
+
+#### 1）操作步骤：
+
+* 以外部Crate `rand`  为例
+
+* 修改 `Cargo.toml` 文件
+
+  * 在 `[dependencies]` 区域添加一行：`rand = "0.8.3"`
+  * 即在 Cargo 中，加入 rand 依赖。告诉了 Cargo 要从 crates.io <u>下载 rand 和其依赖</u>，并使其可在项目代码中使用
+
+* 将需要的 `rand` 定义引入项目包的作用域
+
+  ```rust
+  use rand::Rng;
+  
+  fn main() {
+      let secret_number = rand::thread_rng().gen_range(1..101);
+  }
+  ```
+
+  * 这里使用 `use` 引入了第三方包 `rand` 中的 `Rng` 特征。因为需要调用的 `gen_range` 方法定义在该特征中
+
+#### 2）来源
+
+* Rust 社区已经为我们贡献了大量高质量的第三方包，你可以在 `crates.io` 或者 `lib.rs` 中检索和使用
+  * 从目前来说查找包更推荐 `lib.rs`，搜索功能更强大，内容展示也更加合理，但是下载依赖包还是得用`crates.io`。
+
+#### 3）简化引入方式
+
+* 使用 `{}`
+
+  * 对于以下一行一行的引入方式：
+
+    ```rust
+    use std::collections::HashMap;
+    use std::collections::BTreeMap;
+    use std::collections::HashSet;
+    
+    use std::cmp::Ordering;
+    use std::io;
+    ```
+
+    * 可以使用 `{}` 来一起引入进来
+
+      ```rust
+      use std::collections::{HashMap,BTreeMap,HashSet};
+      use std::{cmp::Ordering, io};
+      ```
+
+  * 同时引入模块和模块中的项：
+
+    ```rust
+    use std::io;
+    use std::io::Write;
+    ```
+
+    * 可以使用 `{}` 的方式进行简化:
+
+      ```rust
+      use std::io::{self, Write};
+      ```
+
+  * `self` 关键字
+    * 这里用来替代模块自身
+    * 总结：在模块中的2种用法
+      * `use self::xxx`，表示加载当前模块中的 `xxx`。<u>此时 `self` 可省略</u>
+      * `use xxx::{self, yyy}`，表示，加载当前路径下模块 `xxx` 本身，以及模块 `xxx` 下的 `yyy`
+
+* 使用 `*` 
+
+  * 引入指定模块下的<u>所有公共项</u>
+
+    ```rust
+    use std::collections::*;
+    ```
+
+  * 当使用 `*` 来引入的时候要格外小心，因为你很难知道到底哪些被引入到了当前作用域中，有哪些会和你自己程序中的<u>名称相冲突</u>
+
+    * 对于编译器来说，本地同名类型的优先级更高
+
+  * 应用
+
+    * 在实际项目中，这种引用方式往往用于快速写测试代码，它可以把所有东西一次性引入到 `tests` 模块中
+
+### 5. 受限的可见性
+
+* 限制可见性语法：有条件的 `pub`
+  * `pub` ：意味着可见性无任何限制
+  * `pub(crate)` ：表示在当前包可见
+  * `pub(self)` ：在当前模块可见
+  * `pub(super)` ：在父模块可见
+  * `pub(in <path>)` ：表示在某个路径代表的模块中可见，其中 `path` 必须是父模块或者祖先模块
+
+# 14. 注释和文档
+
+## 14.1 注释的种类
+
+* 在 Rust 中，注释分为三类：	
+  * 代码注释：用于说明某一块代码的功能，读者往往是同一个项目的协作开发者
+  * 文档注释：支持 `Markdown`，对项目描述、公共 API 等用户关心的功能进行介绍，同时还能提供示例代码，目标读者往往是想要了解你项目的人
+  * 包和模块注释：严格来说这也是文档注释中的一种，它主要用于说明当前包和模块的功能，方便用户迅速了解一个项目
+
+## 14.2 代码注释
+
+* 行注释 `//`
+* 块注释 `/*..... */`
+
+## 14.3 文档注释
+
+* 当查看一个 `crates.io` 上的包时，往往需要通过它提供的<u>文档</u>来浏览相关的功能特性、使用方式，这种文档就是通过<u>文档注释</u>实现的
+
+* 文档行注释 `///`
+
+  ```rust
+  /// `add_one` 将指定值加1
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// let arg = 5;
+  /// let answer = my_crate::add_one(arg);
+  ///
+  /// assert_eq!(6, answer);
+  /// ```
+  pub fn add_one(x: i32) -> i32 {
+      x + 1
+  }
+  ```
+
+  * 文档注释需要位于 `lib` 类型的包中，例如 `src/lib.rs` 中
+  * 可以使用 `markdown`语法！例如 `# Examples` 的标题，以及代码块高亮
+  * 被注释的对象，需要使用 `pub` 对外可见。
+    * 记住：文档注释是给用户看的，**内部实现细节不应该被暴露出去**
+
+* 文档块注释 `/** ... */`
+
+  * 注释内容多时，使用块注释可以减少 `///` 的使用
+
+  ~~~rust
+  /** `add_two` 将指定值加2
+  
+  
+  ```
+  let arg = 5;
+  let answer = my_crate::add_two(arg);
+  
+  assert_eq!(7, answer);
+  ```
+  */
+  pub fn add_two(x: i32) -> i32 {
+      x + 2
+  }
+  ~~~
+
+  * 效果如下
+
+    ![Snipaste_2022-11-12_16-39-40](C:/Users/11731/Desktop/Typora/Typora note/OpenSourceOSTrainingComp2022/picture/Snipaste_2022-11-12_16-39-40.png)
+
+* `cargo doc` 命令
+
+  * 把<u>文档注释</u>转换成 <u>`HTML` 网页文件</u>，最终展示给用户浏览
+  * 放入*target/doc*目录下
+  * 还可以使用 `cargo doc --open` 命令，可以在生成文档后，自动在浏览器中打开网页
+
+* 常用文档标题
+
+  * 这些标题更多的是一种惯例，不强迫
+  * **Panics**：函数可能会出现的<u>异常状况</u>，这样调用函数的人就可以<u>提前规避</u>
+  * **Errors**：描述可能出现的<u>错误及什么情况会导致错误</u>，有助于调用者针对不同的错误采取不同的<u>处理方式</u>
+  * **Safety**：如果函数使用 `unsafe` 代码，那么调用者就需要<u>注意一些使用条件</u>，以确保 `unsafe` 代码块的正常工作
+
+* 包和模块级别的注释
+
+  * 只能**要添加到包、模块的最上方**
+
+  * 分为两种
+
+    * 行注释 `//!` 和块注释 `/*! ... */`
+
+  * 例
+
+    * 包注释：在 `src/lib.rs` 包根的最上方，添加
+
+      ```rust
+      /*! lib包是world_hello二进制包的依赖包，
+       里面包含了compute等有用模块 */
+      
+      pub mod compute;
+      ```
+
+    * 模块注释：子模块 `src/compute.rs` 添加
+
+      ```rust
+      //! 计算一些你口算算不出来的复杂算术题
+      
+      
+      /// `add_one`将指定值加1
+      ///
+      ```
+
+    * 效果如下
+
+      ![Snipaste_2022-11-12_16-38-14](C:/Users/11731/Desktop/Typora/Typora note/OpenSourceOSTrainingComp2022/picture/Snipaste_2022-11-12_16-38-14.png)
+
+## 14.4 文档测试
+
+* Rust 允许我们在文档注释中，写<u>单元测试用例</u>
+
+* 写在 `markdown` 的代码格式块中，使用 `cargo test` 运行测试
+
+  ```rust
+  /// `add_one` 将指定值加1
+  ///
+  /// # Examples11
+  ///
+  /// ```
+  /// let arg = 5;
+  /// let answer = world_hello::compute::add_one(arg);
+  ///
+  /// assert_eq!(6, answer);
+  /// ```
+  pub fn add_one(x: i32) -> i32 {
+      x + 1
+  }
+  ```
+
+  ```shell
+  Doc-tests world_hello
+  
+  running 2 tests
+  test src/compute.rs - compute::add_one (line 8) ... ok
+  test src/compute.rs - compute::add_two (line 22) ... ok
+  
+  test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.00s
+  ```
+
+* 造成 panic 的文档测试
+
+  * 文档测试中的用例还可以造成 `panic`
+  * 通过添加 `should_panic`，使文档测试顺利通过
+
+  ```rust
+  /// # Panics
+  ///
+  /// The function panics if the second argument is zero.
+  ///
+  /// ```rust,should_panic	（这里加）
+  /// // panics on division by zero
+  /// world_hello::compute::div(10, 0);
+  /// ```
+  ```
+
+* 保留测试，隐藏文档
+
+  * 行首使用 `#` 
+
+    ```rust
+    /// ```
+    /// # // 使用#开头的行会在文档中被隐藏起来，但是依然会在文档测试中运行
+    /// # fn try_main() -> Result<(), String> {
+    /// let res = world_hello::compute::try_div(10, 0)?;
+    /// # Ok(()) // returning from try_main
+    /// # }
+    /// # fn main() {
+    /// #    try_main().unwrap();
+    /// #
+    /// # }
+    /// ```
+    pub fn try_div(a: i32, b: i32) -> Result<i32, String> {
+        if b == 0 {
+            Err(String::from("Divide-by-zero"))
+        } else {
+            Ok(a / b)
+        }
+    }
+    ```
+
+## 14.5 文档注释中的代码跳转
+
+* `[``]` 可以实现对外部项的链接
+
+  ```rust
+  use std::sync::mpsc::Receiver;
+  
+  /// [`Receiver<T>`]   [`std::future`].
+  ///
+  ///  [`std::future::Future`] [`Self::recv()`].
+  pub struct AsyncReceiver<T> {
+      sender: Receiver<T>,
+  }
+  
+  impl<T> AsyncReceiver<T> {
+      pub async fn recv() -> T {
+          unimplemented!()
+      }
+  }
+  ```
+
+## 14.6 文档搜索别名
+
+* Rust 文档支持搜索功能，我们可以为自己的类型定义几个别名，以实现更好的搜索展现
+
+  * 当别名命中时，搜索结果会被放在第一位
+
+  ```rust
+  #[doc(alias = "x")]
+  #[doc(alias = "big")]
+  pub struct BigX;
+  
+  #[doc(alias("y", "big"))]
+  pub struct BigY;
+  ```
+
+  
+
