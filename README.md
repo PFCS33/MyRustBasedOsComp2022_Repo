@@ -12,6 +12,7 @@
   * [2022.11.08](#2022_11_08)
   * [2022.11.10](#2022_11_10)
   * [2022.11.12](#2022_11_12)
+  * [2022.11.13](#2022_11_13)
 * Rust学习笔记
   * [RustNote](./note/RustNote.md)
 * rustlings 代码
@@ -66,4 +67,8 @@
 * 整理并完成 rust语言上述部分的笔记
 * 完成rustlings：enums, modules, hashmaps
 
- 
+ ## 2022_11_13
+
+* 阅读   The Rustlings Course 格式化输出部分
+* 整理并完成 rust语言上述部分的笔记
+* 完成rustlings：options, vecs,error_handing, generics  

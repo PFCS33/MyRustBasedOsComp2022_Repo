@@ -13,9 +13,9 @@
 | strings                | §8.2                |*
 | modules                | §7                  |*
 | hashmaps               | §8.3                |* 
-| options                | §10.1               |
-| error_handling         | §9                  |
-| generics               | §10                 |
+| options                | §10.1               |*
+| error_handling         | §9                  |*
+| generics               | §10                 |*
 | traits                 | §10.2               |*
 | tests                  | §11.1               |
 | lifetimes              | §10.3               |

@@ -1998,7 +1998,8 @@ let b = [3 ; 5]; //包含 5 个元素，初始化值都为 3
   * 模式匹配的另外一个重要功能是从模式中<u>取出绑定的值</u>
 
     * 不是copy特型，将会发生所有权转移
-
+    * 可用 `ref` 关键字避免所有权转移
+    
     ```rust
     enum Action {
         Say(String),
@@ -2339,7 +2340,7 @@ let none = plus_one(None);
           println!("Found an id in range: {}", id_variable)
       },
       Message::Hello { id: 10..=12 } => {
-          println!("Found an id in another range")
+          println!("Found an id in another range")	// 只匹配左开右闭区间
       },
       Message::Hello { id } => {
           println!("Found some other id: {}", id)
@@ -3330,6 +3331,8 @@ fn main() {
   ```
 
   * 与其它类型一样，必须将 `v` 声明为 `mut` 后，才能进行修改
+
+* `.pop()`: 返回的是 `Option<T>` 包裹的值
 
 ### 5. Vector 与其元素共存亡
 
@@ -4810,6 +4813,335 @@ crate
   
   #[doc(alias("y", "big"))]
   pub struct BigY;
+  ```
+
+
+# 15. 格式化输出
+
+## 1. 主要使用的宏
+
+* `print!`
+
+  * 将格式化文本输出到<u>标准输出，不带换行符</u>
+
+* ``println!`
+
+  * 同上，在行的末尾<u>添加换行符</u>
+
+* `format!`
+
+  * 将格式化文本输出到 <u>`String` 字符串</u>
+
+  ```rust
+  fn main() {
+      let s = "hello";
+      println!("{}, world", s);
+      let s1 = format!("{}, world", s);
+      print!("{}", s1);
+  }
+  ```
+
+* `eprint!`，`eprintln!`
+
+  * 使用方式跟 `print!`，`println!` 很像。
+
+  * 输出到<u>标准错误输出</u>
+
+    * 它们仅应该被用于输出错误信息和进度信息
+    * 其它场景都应该使用 `print!` 系列
+
+    ```rust
+    eprintln!("Error: Could not complete task")
+    ```
+
+## 2. {} 与 {:?}
+
+* Rust 选择了 `{}` 作为格式化占位符
+
+  * 它帮助用户减少了很多使用成本：你无需再为特定的类型选择特定的占位符，统一用 `{}` 来替代即可
+  * 剩下的类型推导等细节只要交给 Rust 去做
+
+* `{}` 与 `{:?}` 的实现
+
+  * `{}` ：适用于实现了 `std::fmt::Display` 特征的类型
+    * 用来以更优雅、更友好的方式格式化文本，例如展示给用户
+  *  `{:?}` ：适用于实现了 `std::fmt::Debug` 特征的类型
+    * 用于调试场景
+
+* `Debug` 特征
+
+  * 事实上，为了方便我们调试，大多数 Rust 类型都实现了 `Debug` 特征，或者支持<u>派生该特征</u>
+
+  * 对于<u>数值、字符串、数组</u>，可以直接使用 `{:?}` 进行输出
+
+  * 对于结构体，需要派生Debug特征后，才能进行输出
+
+    ```rust
+    #[derive(Debug)]
+    struct Person {
+        name: String,
+        age: u8
+    }
+    
+    fn main() {
+        let i = 3.1415926;
+        let s = String::from("hello");
+        let v = vec![1, 2, 3];
+        let p = Person{name: "sunface".to_string(), age: 18};
+        println!("{:?}, {:?}, {:?}, {:?}", i, s, v, p);
+    }
+    ```
+
+* `Display` 特征
+
+  * 实现了 `Display` 特征的 Rust 类型并没有那么多，且不能像派生 `Debug` 一般派生 `Display`。
+
+    * 往往需要我们自定义想要的格式化方式
+
+  * 想要打印没有实现 `Display` 的变量，可以派生`Debug` 特征，使用 `{:?}` 或 `{:#?}`
+
+    * `{:#?}` 与 `{:?}` 几乎一样，唯一的区别在于它能更优美地输出内容
+
+  * 为本地自定义类实现 `Display` 特征
+
+    * 前提
+
+      * 如果你的类型是定义在<u>当前作用域</u>中的，那么可以为其实现 `Display` 特征
+
+    * 路径： `std::fmt::Display` 
+
+    * 只要实现 `Display` 特征中的 `fmt` 方法，即可实现`{}`占位的自定义输出
+
+      ```rust
+      struct Person {
+          name: String,
+          age: u8,
+      }
+      
+      use std::fmt;	//引入对应模块
+      impl fmt::Display for Person {
+          fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+              write!(
+                  f,
+                  "大佬在上，请受我一拜，小弟姓名{}，年芳{}，家里无田又无车，生活苦哈哈",
+                  self.name, self.age
+              )
+          }
+      }
+      fn main() {
+          let p = Person {
+              name: "sunface".to_string(),
+              age: 18,
+          };
+          println!("{}", p);
+      }
+      ```
+
+  * 为外部类型实现 `Display` 特征
+
+    * 在 Rust 中，无法直接为外部类型实现外部特征。但是可以使用 `newtype` 方法解决
+
+      ```rust
+      struct Array(Vec<i32>);	//Array即为newtype
+      
+      use std::fmt;	//直接对Array实现Display特征
+      impl fmt::Display for Array {
+          fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+              write!(f, "数组是：{:?}", self.0)
+          }
+      }
+      fn main() {
+          let arr = Array(vec![1, 2, 3]);
+          println!("{}", arr);
+      }
+      ```
+
+## 3. 位置参数
+
+* 除了按照依次顺序使用值去替换占位符之外，还能在<u>占位符中</u>，<u>指定参数的位置</u>来替换
+
+  * 索引从0开始
+  * 形如： `{1}`，表示用第二个参数替换该占位符
+
+  ```rust
+  println!("{0}, this is {1}. {1}, this is {0}", "Alice", "Bob");
+  ```
+
+## 4. 具名参数
+
+* 还能在<u>占位符中</u>，指定<u>参数名称</u>来替换
+
+* 注意：**带名称的参数必须放在不带名称参数的后面**
+
+  ```rust
+    println!("{a} {c} {b}", a = "a", b = 'b', c = 3); // 参数也要指定名字
+  ```
+
+## 5. 格式化参数
+
+* 格式化输出，意味着对输出格式会有更多的要求
+
+### 1）语法
+
+* 在 `{:}` 的 <u>`:` 之后</u>，添加格式化参数
+
+### 2）例
+
+* `{}` 和 `{:?}` 的格式化参数
+
+```rust
+fn main() {
+    let v = 3.1415926;
+    // Display => 3.14
+    println!("{:.2}", v);
+    // Debug => 3.14
+    println!("{:.2?}", v);
+}
+```
+
+### 3）参数种类
+
+* 宽度
+
+  * 用来指示输出目标的长度
+    * 也<u>可以用参数</u>指定，用<u>位置参数/具名参数指定，且加上后缀 `$`</u>
+  * 如果长度不够，则进行<u>填充和对齐</u>
+
+* 填充
+
+  * 可指定 <u>符号或0</u> 进行填充
+    * 注意：指定<u>符号填充</u>的前提条件，是必须有对齐字符
+    * 数字的0填充可以不指定对齐字符。
+      * 字符串认不出来不指定对齐字符的0填充
+  * 在 `:` 和宽度 之间指定
+
+* 对齐
+
+  * 在 填充符号和宽度 之间指定
+  * 左对齐 `<`，右对齐 `>`，居中对齐 `^`
+
+* 字符串格式化
+
+  * 默认使用<u>空格</u>进行填充，并且进行<u>左对齐</u>（相当于无效果？）
+
+* 数字格式化
+
+  * 默认使用<u>空格</u>进行填充，并且进行<u>右对齐</u>
+
+  ```rust
+  // 为"x"后面填充空格，补齐宽度5
+      println!("Hello {:5}!", "x");
+  // 使用x作为占位符输出内容，同时使用5作为宽度
+      println!("Hello {1:0$}!", 5, "x");
+  // 使用有名称的参数作为宽度
+      println!("Hello {:width$}!", "x", width = 5);
+  
+  // 显式的输出正号 => Hello +5!
+      println!("Hello {:+}!", 5);
+  ```
+
+  ```rust
+  // 宽度5，使用0进行填充 => Hello 00005!
+      println!("Hello {:05}!", 5);
+  // 指定符号填充的前提条件是必须有对齐字符
+      println!("Hello {:&<5}!", "x");
+  ```
+
+* 精度
+
+  * 可以用于控制<u>浮点数的精度</u>或者<u>字符串的长度</u>
+
+  * `.` 后添加精度，可以加 `$` 后缀指定参数
+
+    ```rust
+    let v = 3.1415926;
+    // 保留小数点后两位 => 3.14
+    println!("{:.2}", v);
+    // 通过参数来设定精度 => 3.1416，相当于{:.4}
+    println!("{:.1$}", v, 4);
+    
+    let s = "hi我是Sunface孙飞";
+    // 保留字符串前三个字符 => hi我
+    println!("{:.3}", s);
+    // {:.*}是语法糖，相当于顺序接收两个参数，第一个是精度，第二个是被格式化的值 => Hello abc!
+        println!("Hello {:.*}!", 3, "abcdefg");
+    ```
+
+* 进制
+
+  * 可以使用 `#` ，来控制数字的进制输出
+
+    * `#b`, 二进制
+    * `#o`, 八进制
+    * `#x`, 小写十六进制
+    * `#X`, 大写十六进制
+    * `x`, 不带前缀的小写十六进制
+
+    ```rust
+    // 二进制 => 0b11011!
+    println!("{:#b}!", 27);
+    // 八进制 => 0o33!
+    println!("{:#o}!", 27);
+    // 十进制 => 27!
+    println!("{}!", 27);
+    // 小写十六进制 => 0x1b!
+    println!("{:#x}!", 27);
+    // 大写十六进制 => 0x1B!
+    println!("{:#X}!", 27);
+    
+    // 使用0填充二进制，宽度为10 => 0b00011011!
+    //注意，填充符0在 #内 和 #外，写法是不同的
+    println!("{:#010b}!", 27);
+    //加上占位符指定
+    println!("{:&>#10b}!", 27);
+    ```
+
+* 指数
+
+  * `e` 或 `E` 后缀
+
+    ```rust
+    println!("{:2e}", 1000000000); // => 1e9
+    println!("{:2E}", 1000000000); // => 1E9
+    ```
+
+* 指针地址
+
+  * `p`
+
+    ```rust
+    let v= vec![1, 2, 3];
+    println!("{:p}", v.as_ptr()) // => 0x600002324050
+    ```
+
+* 转义
+
+  * "{{" 转义为 '{' ，"}}" 转义为 '}'，"\"" 转义为 '"'
+
+    ```rust
+    // => Hello "{World}" 
+    println!(" Hello \"{{World}}\" ");
+    ```
+
+### 4）捕获环境中的值，放入格式化字符串
+
+* Rust 1.58 新增
+
+* 可以将环境中的值用于格式化参数，Rust自动识别并匹配
+
+* 局限：
+
+  * 只能捕获普通的变量
+  * 对于更复杂的类型（例如表达式），可以先将它赋值给一个变量或使用以前的 `name = expression` 形式的格式化参数
+
+  ```rust
+  let person = get_person();
+  println!("Hello, {person}!");
+  
+  let (width, precision) = get_format();
+  for (name, score) in get_scores() {
+    println!("{name}: {score:width$.precision$}");
+  }
   ```
 
   
