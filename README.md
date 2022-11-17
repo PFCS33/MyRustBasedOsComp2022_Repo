@@ -13,6 +13,8 @@
   * [2022.11.10](#2022_11_10)
   * [2022.11.12](#2022_11_12)
   * [2022.11.13](#2022_11_13)
+  * [2022.11.14~2022.11.16](#2022_11_14-2022_11_16)
+  * [2022.11.17](#2022_11_17)
 * Rust学习笔记
   * [RustNote](./note/RustNote.md)
 * rustlings 代码
@@ -72,3 +74,14 @@
 * 阅读   The Rustlings Course 格式化输出部分
 * 整理并完成 rust语言上述部分的笔记
 * 完成rustlings：options, vecs,error_handing, generics  
+
+## 2022_11_14-2022_11_16
+
+* 阅读   The Rustlings Course  生命周期部分（好难）
+* 整理并完成 rust语言上述部分的笔记
+
+## 2022_11_17
+
+* 阅读   The Rustlings Course  闭包，迭代器部分
+* 整理并完成 rust语言上述部分的笔记
+* 完成rustlings：quiz 1~3，lifetime

@@ -5144,5 +5144,1068 @@ fn main() {
   }
   ```
 
+
+# 16. 生命周期
+
+## 1.概念
+
+* 注意：Rust 的很多写作中，生命周期这个词被宽泛地用来指代三种不同的东西——变量真实的生命周期、生命周期约束和生命周期标注
+
+* 变量的生命周期(**Lifetimes of variables**)
+
+  * 很直观，就是从变量<u>创建到被销毁</u>的那段时间。“活着的时间”
+
+  * 也就是所谓的作用域
+
+    ```rust
+    {
+        let x: Vec<i32> = Vec::new();//---------------------+
+        {//                                                 |
+            let y = String::from("Why");//---+              | x's lifetime
+            //                               | y's lifetime |
+        }// <--------------------------------+              |
+    }// <---------------------------------------------------+
+    ```
+
+* 生命周期约束(**Lifetime constraints**)
+
+  * 变量在代码中的交互，会对它们的生命周期产生一定的约束
+
+  * 例如，在下面的代码中，`x=&y; `这一行（隐式）添加了一个约束：`x`的生命周期应该与封闭于`y`的生命周期之内
+
+    * 编译器会<u>根据产生的约束</u>，对变量的真实生命周期进行检查。如果约束不满足，就报错
+    * 下面代码没有满足约束，所以会报错
+
+    ```rust
+    //error:`y` does not live long enough
+    {
+        let x: &Vec<i32>;
+        {
+            let y = Vec::new();//----+
+    //                               | y's lifetime
+    //                               |
+            x = &y;//----------------|--------------+
+    //                               |              |
+        }// <------------------------+              | x's lifetime
+        println!("x's length is {}", x.len());//    |
+    }// <-------------------------------------------+
+    ```
+
+  * 记住，**约束没有改变真实的生命周期**——例如，`x`的生命周期，仍然延展到外部块的结尾，它们只是编译器用来禁止悬垂引用的工具。
+
+    * 只是告诉编译器，**不满足此约束条件时，就拒绝编译通过**
+
+  * 为方便理解，可以认为**，`x`的生命周期约束，就是 其引用的值 <u>`y` 的 作用域末端**</u> ”
+
+    * 该生命周期约束绑定到了 `x` 上，即 “`x` 的生命周期约束，到其引用的值 <u>`y` 的 作用域末端</u> ”
+    * 检查时，**就是对 `x` 的生命周期和 `y` 的 作用域末端进行比较**，需要 `x` 的生命周期更短
+    * **注：以后都这样表达生命周期约束**
+
+* 生命周期标注(**Lifetime annotations**)
+
+  * 大多数情况，编译器会自动生成所有的<u>生命周期约束</u>。
+    * 但是随着代码愈加复杂，编译器会有认不出来的情况。这时候，必须要程序员手动添加约束。
+  * 程序员通过 <u>生命周期标注</u>，显示地添加生命周期约束
+  * 一般是，当多个生命周期约束的可能性存在，且编译器无法推导出的应该遵守的生命周期约束
+
+* 所以，这里的教材书讲的“生命周期”，一般是<u>生命周期约束</u>。
+
+## 2. 为什么需要生命周期(约束)
+
+* 来源
+  * Rust的所有权机制
+* 借用检查：
+  * 为了保证 Rust 的<u>所有权和借用的正确性</u>，Rust 使用了一个 **Borrow checker**，<u>编译时</u>，就检查借用的正确性
+  * 借用检查管理着内存的分配与释放，同时确保不会存在指向被释放内存的<u>错误引用</u>
+    * <u>引用检查</u>也是借用检查机制的一大职责
+* 所以，引入<u>生命周期约束</u>，辅助引用检查
+  * 引用检查过程，是通过<u>检查所有的生命周期约束</u>是否满足。来确保在编译时就直到，引用是否有效
+  * 避免<u>垂悬指针</u>问题（这种引用会在该机制下，不能通过生命周期约束，无法通过编译）
+
+## 3. 生命周期标注语法
+
+* 须以`'`开头，后跟生命周期名称
+
+  * 其名称通常全是单独的字母小写（类似于泛型的名称，非常短）
+  * `'a` 是大多数人默认使用的名称
+
+* 位于引用的 `&` 之后，并有一个空格将引用类型与生命周期注解分隔开
+
+  ```rust
+  &i32        // 引用
+  &'a i32     // 带有显式生命周期的引用
+  &'a mut i32 // 带有显式生命周期的可变引用
+  ```
+
+## 4. 函数签名中的生命周期标注
+
+### 1）函数中的泛型生命周期
+
+```rust
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}	
+```
+
+* 和泛型一样，使用生命周期参数，需要先声明 `<'a>`
+
+### 2）作用
+
+```rust
+fn main() {
+    let string1 = String::from("long string is long");
+
+    {
+        let string2 = String::from("xyz");
+        let result = longest(string1.as_str(), string2.as_str());
+        println!("The longest string is {}", result);
+    }
+}
+```
+
+* 在进行 main()函数的编译时，若 `longest()` 函数没有生命周期标注，编译器是无法从 `  let result = longest(string1.as_str(), string2.as_str());` 语句中，推断出 `result` 应该遵守的约束的
+  * 因为 `longest()` 函数是“黑盒” 状态，编译器看来，`result ` 即有可能遵守作为 `string1` 的引用的约束，也有可能遵守作为 `string2` 的引用的约束，不能确定
+* 通过对 `longest()` 函数进行生命周期标注，显示告诉编译器，应该对应哪种约束
+
+### 3）返回值生命周期(约束)的推断
+
+* 当相同的生命周期标注，标注了一个函数中两个及以上的参数，生命周期标注的真实意义是，<u>取交集</u>（即<u>最小</u>那个的生命周期范围）
+  * 这意味着<u>返回值的生命周期</u>约束与输入参数的生命周期约束中的<u>较小值一致</u>
+* 例中，`'a` 生命周期参数标注了参数 `x`、`y` 以及返回值。
+  * 意会地说，因为 `x` 和 `y` 分别表示 `string1` 作用域末端和`string2` 作用域末端，取交集后，`'a'` 表示 更短的 `string2` 作用域末端
+    * 跟本质地来说，因为 `x` 和 `y` 分别借用自`string1`和`string2`。真实表达的生命条件约束应为：返回的引用的生命周期应该同时封闭于`string1`和`string2`的生命周期之内
+
+### 4）例：听话的编译器
+
+* 导致保守行为
+
+```rust
+fn main() {
+    let string1 = String::from("long string is long");
+    let result;	//作用域为main函数的括号
+    {
+        let string2 = String::from("xyz");
+        result = longest(string1.as_str(), string2.as_str());//Error!
+    }
+    println!("The longest string is {}", result);	
+}	
+```
+
+* 该例中，`result` 的生命周期很长，且 `string1 ` 的生命周期也在 `println!` 有效。按理说，用 `result` 作为 `string1` 的引用，是能通过约束的
+  * 但由于 `largest()` 的生命周期标注，编译器会认为返回值 `result`的生命周期约束，为 `string2` 的生命周期末端
+  * 所以编译时, 会认为`result` 不满足生命周期约束
+* 总体来看，Rust 编译器在调教上是非常保守的：当可能出错也可能不出错时，它会选择前者，抛出编译错误
+
+* 总之，显式的使用生命周期，可以让编译器正确的认识到多个引用之间的关系，最终帮我们提前<u>规避可能存在的代码风险</u>（例中，可能生命周期是 `string2`，所以编译不通过）
+
+## 5. 结构体中的生命周期
+
+* 想要在结构体中定义<u>引用类型</u>，就必须声明生命周期标注
+  * 且为**每一个引用标注上生命周期**
+
+### 1）语法
+
+* 需要对生命周期参数进行声明 `<'a>`，跟泛型参数语法很像
+
+```rust
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+```
+
+### 2）作用
+
+* 在结构体定义中，加上生命周期标注，编译器就会在创建结构体实例，给其引用成员赋值时，一一对应地对其进行借用检查。
+
+* 例：无法通过编译
+
+  * 该例中，赋值给part的字符串的生命周期，小于其生命周期约束，所以报错
+
+  ```rust
+  #[derive(Debug)]
+  struct ImportantExcerpt<'a> {
+      part: &'a str,
+  }
   
+  fn main() {
+      let i;
+      {
+          let novel = String::from("Call me Ishmael. Some years ago...");
+          let first_sentence = novel.split('.').next().expect("Could not find a '.'");
+          i = ImportantExcerpt {
+              part: first_sentence,
+          };
+      }
+      println!("{:?}",i);
+  }
+  ```
+
+## 6. 函数中的生命周期(约束)省略
+
+### 1）概述
+
+* 在 Rust 编译器的<u>早期版本</u>中，<u>生命周期标注</u>不允许被省略并且每个生命周期标注都是需要的
+  * 但是随着时间推移，编译器团队观察到，同样的生命周期标注不断重复，所以编译器就被修改从而开始能**推导出生命周期标注**
+
+* Rust的借用检查器编码进了一套引用分析的模式，在这些情况下就能推断出省略的生命周期约束，而不再强制程序员显式的增加注解
+  * 这套模式被称为**生命周期省略规则**
+  * 这些规则是一系列特定的场景，此时编译器会考虑，如果代码符合这些场景，就无需明确指定生命周期(约束)
+    * 如果编译器检查完这三条规则后，仍然存在没有计算出<u>所有生命周期（约束）的引用</u>，编译器将会<u>停止并生成错误</u>
+  * 注：这些规则只是编译器发现你没有标注生命周期时默认去使用的。当你标注生命周期后，编译器会按照你的指示去做
+
+### 2）生命周期(约束)省略规则
+
+* **函数或者方法中**
+  * 输入生命周期：**参数的生命周期(约束)**
+  * 输出生命周期：**返回值的生命周期(约束)**
+* 规则一：
+  * 每一个<u>引用参数</u>，都会获得<u>独自的生命周期标注</u> 
+* 规则二：
+  * **若只有<u>一个输入生命周期</u>(即函数参数中只有一个引用类型)，那么该生命周期（约束）会被赋给所有的输出生命周期**
+* 规则三
+  * **若存在<u>多个输入生命周期</u>，且其中一个是 `&self` 或 `&mut self`，则 `&self` 的生命周期（约束）被赋给所有的输出生命周期**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+
+## 7. 方法中的生命周期
+
+### 1）语法
+
+* 跟泛型方法的定义相似，`impl` 需提前显示声明生命周期类型，且必须使用结构体的完整名称（包括 `<'a>`），因为生命周期标注也是结构体类型的一部分
+* 注：方法签名中，往往<u>不需要标注生命周期</u>，得益于生命周期消除的第一和第三规则（方法也算是函数实现，所以可以用消除规则）
+
+```rust
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+
+impl<'a> ImportantExcerpt<'a> {
+    fn announce_and_return_part(&self, announcement: &str) -> &str {
+        println!("Attention please: {}", announcement);
+        self.part
+    }
+}
+```
+
+* 例：省略规则应用的场景
+
+  * 首先，编译器应用第一规则，给予每个输入参数一个生命周期标注
+
+    * 由于`announcement` 的生命周期用了新的名称 `'b`，所以要在方法签名中声明 `'b`
+
+    ```rust
+    impl<'a> ImportantExcerpt<'a> {
+        fn announce_and_return_part<'b>(&'a self, announcement: &'b str) -> &str {
+            println!("Attention please: {}", announcement);
+            self.part
+        }
+    }
+    ```
+
+  * 接着，编译器应用第三规则，将 `&self` 的生命周期约束赋给返回值 `&str`
+
+    ```rust
+    impl<'a> ImportantExcerpt<'a> {
+        fn announce_and_return_part<'b>(&'a self, announcement: &'b str) -> &'a str {
+            println!("Attention please: {}", announcement);
+            self.part
+        }
+    }
+    ```
+
+### 2）生命周期约束语法
+
+* 例：
+
+  * 若想把返回引用的类型从 `'a` 改为 `'b`，直接改会报错
+    * 因为赋给返回值的 `self.part` 的生命周期是 `'a`，编译器不知道 `'a` 和 `'b` 的关系，无法进行借用检查
+    * 需要通过某种方式，提前“告诉”编译器 `'a` 和 `'b` 的应该遵守的关系
+
+  ```rust
+  impl<'a> ImportantExcerpt<'a> {
+      fn announce_and_return_part<'b>(&'a self, announcement: &'b str) -> &'b str {
+          println!("Attention please: {}", announcement);
+          self.part
+      }
+  }
+  ```
+
+  * 改为：
+
+  ```rust
+  impl<'a: 'b, 'b> ImportantExcerpt<'a> {
+      fn announce_and_return_part(&'a self, announcement: &'b str) -> &'b str {
+          println!("Attention please: {}", announcement);
+          self.part
+      }
+  }
+  ```
+
+* `<'a: 'b>`
+
+  * 是生命周期约束语法
+
+  * 跟泛型约束非常相似，告诉编译器， `'a` 的生命周期 长于 `'b` 
+
+    * 如果 `'b`的生命周期约束实际比 `'a` 长，编译器会以为 `'b` 的生命周期约束就是 `'a `的
+    * 保守而安全的 
+
+  * 这种写法是在同一个地方声明的。另一种写法是，分开声明，并通过 `where 'a: 'b` 表达约束关系
+
+    ```rust
+    impl<'a> ImportantExcerpt<'a> {
+        fn announce_and_return_part<'b>(&'a self, announcement: &'b str) -> &'b str
+        where
+            'a: 'b,
+        {
+            println!("Attention please: {}", announcement);
+            self.part
+        }
+    }
+    ```
+
+## 8. 静态生命周期 `'static`
+
+* 在 Rust 中有一个非常特殊的生命周期：`'static`
+  * 声明生命周期跟整个<u>程序</u>一样长
+  * 例：字符串字面量
+    * 由于是被硬编码进 Rust 的二进制文件中
+    * 全部具有 `'static` 的生命周期
+* 有时候，`'static` 确实可以帮助我们解决非常复杂的生命周期问题甚至是无法被手动解决的生命周期问题
+  * 但有引入潜在 BUG 的风险
+
+## 9. 生命周期约束 HRTB
+
+* 语法与特征约束类似，通过形如 `'a: 'b` 的语法，来告诉编译器两个生命周期约束的长短关系
+
+* `'a: 'b`
+
+  ```rust
+  struct DoubleRef<'a,'b:'a, T> {
+      r: &'a T,
+      s: &'b T
+  }
+  ```
+
+* `T: 'a` 
+
+  * `r` 的生命周期(约束) `'a` ，比类型 `T` 的生命周期更短
+
+  ```rust
+  struct Ref<'a, T: 'a> {
+      r: &'a T
+  }
+  ```
+
+  * 但是从 1.31 版本开始，编译器可以自动推导 `T: 'a` 类型的约束。我们只需这样写即可
+
+  ```rust
+  struct Ref<'a, T> {
+      r: &'a T
+  }
+  ```
+
+## 10. NLL 
+
+* Non-Lexical Lifetime：非词法生命周期
+* 原来情况
+  * 引用的（真实）生命周期，是从借用开始一直持续到<u>作用域结束</u>，即直到大括号
+* 引入 NLL 后，变成了：引用的生命周期从借用处开始，一直持续到**最后一次使用的地方**
+
+## 11. reborrow
+
+* 不可变引用实现了copy特型，而可变引用没有
+  * 意味着，可变引用的赋值，会发生`move`
+  * 但是这是对函数传参不友好的
+  * 使用reborrow，代替可变引用Move所有权。提供一种同步访问机制
+
+```rust
+fn main() {
+    let mut p = Point { x: 0, y: 0 };
+    let r = &mut p;
+    // reborrow! 此时对`r`的再借用不会导致跟上面的借用冲突
+    let rr: &Point = &*r;
+
+    // 再借用`rr`最后一次使用发生在这里，在它的生命周期中，我们并没有使用原来的借用`r`，因此不会报错
+    println!("{:?}", rr);
+
+    // 再借用结束后，才去使用原来的借用`r`
+    r.move_to(10, 10);
+    println!("{:?}", r);
+}
+```
+
+# 17.  Closure 闭包 
+
+## 1. 概念
+
+* 是一种匿名函数
+
+  * 它可以<u>赋值给变量</u>，也可以<u>作为参数</u>传递给其它函数
+  * 不同于函数的是，它允许捕获<u>调用者作用域</u>中的值
+
+  ```rust
+  fn main() {
+     let x = 1;
+     let sum = |y| x + y;
+      assert_eq!(3, sum(2));
+  }
+  ```
+
+## 2.  语法
+
+### 1）模板
+
+```rust
+|param1, param2,...| {
+    语句1;
+    语句2;
+    返回表达式
+}
+```
+
+* 如果只有一个返回表达式的话，定义可以简化为
+
+```rust
+|param1| 返回表达式
+```
+
+* 注意
+  * 参数是通过 `|param1, param2,...|` 的形式进行声明
+  * 闭包中<u>最后一行表达式</u>的值，就是闭包执行后的<u>返回值</u>
+  * 把闭包赋值给变量 `action`
+    * 并不是把闭包执行后的结果赋值给 `action`，而是 **`action` 就相当于闭包函数**，可以跟函数一样进行调用：`action()`
+
+### 2）作用：
+
+* 当某函数在多个地方被调用时，若要修改调用函数名或者修改参数，就要一个一个全改，很麻烦
+* 这时候，使用闭包来捕获这个函数，要修改时，只用修改闭包中的内容即可
+
+```rust
+use std::thread;
+use std::time::Duration;
+
+fn workout(intensity: u32, random_number: u32) {
+    let action = || {
+        println!("muuuu.....");
+        thread::sleep(Duration::from_secs(2));
+        intensity
+    };
+
+    if intensity < 25 {
+        println!(
+            "今天活力满满，先做 {} 个俯卧撑!",
+            action()
+        );
+        println!(
+            "旁边有妹子在看，俯卧撑太low，再来 {} 组卧推!",
+            action()
+        );
+    } else if random_number == 3 {
+        println!("昨天练过度了，今天还是休息下吧！");
+    } else {
+        println!(
+            "昨天练过度了，今天干干有氧，跑步 {} 分钟!",
+            action()
+        );
+    }
+}
+
+fn main() {
+    // 动作次数
+    let intensity = 10;
+    // 随机值用来决定某个选择
+    let random_number = 7;
+
+    // 开始健身
+    workout(intensity, random_number);
+}
+```
+
+## 3. 类型推导
+
+### 1）概述
+
+* 与函数相反，闭包并不会作为 API 对外提供
+  * 因此它可以享受<u>编译器的类型推导能力</u>，<u>无需标注</u>参数和返回值的<u>类型</u>
+    * 会根据上下文推导
+  * 虽然类型推导很好用，但是它<u>不是泛型</u>，**当编译器推导出一种类型后，它就会一直使用该类型**
+
+###  2）标注类型
+
+* 为了增加代码可读性，有时候我们会给闭包显示地标注类型
+  * 与之相比，不标注类型的闭包声明会更简洁些：`|x, y| x + y`
+
+```rust
+let sum = |x: i32, y: i32| -> i32 {
+    x + y
+}
+```
+
+* 需要注意的是，针对 `sum` 闭包，如果你只进行了声明，但是<u>没有使用</u>，编译器会提示你为 `x, y` 添加类型标注，因为它<u>缺乏必要的上下文</u>
+
+  ```rust
+  let sum  = |x, y| x + y;
+  let v = sum(1, 2);
+  //这里我们使用了 sum，同时把 1 传给了 x，2 传给了 y，因此编译器才可以推导出 x,y 的类型为 i32
+  ```
+
+## 4. 结构体中的闭包
+
+* 结构体中的成员可以是闭包类型，定义如下：
+
+  ```rust
+  struct Cacher<T>
+  where
+      T: Fn(u32) -> u32,
+  {
+      query: T,
+      value: Option<u32>,
+  }
+  ```
+
+  * 每一个闭包实例都有独属于自己的类型
+    * 即使于两个<u>签名一模一样</u>的闭包，它们的<u>类型也是不同</u>的
+  * `Fn(u32) -> u32` 是一个特征，这里作为特征约束出现
+    * 意味着 `query` 的类型是 `T`，该类型必须实现了相应的闭包特征 `Fn(u32) -> u32`
+      *  从表面来看，就对闭包形式进行了显而易见的限制：**该闭包拥有一个`u32`类型的参数，同时返回一个`u32`类型的值**
+  * 标准库提供 `Fn` 系列特征，用来描述 <u>函数/闭包</u> 的特征约束
+    * Fn 特征不仅仅适用于闭包，还适用于函数，因此上面的 `query` 字段除了使用闭包作为值外，还能使用一个具名的函数来作为它的值
+
+## 5. 捕获作用域中的值
+
+### 1）闭包又一特性之一
+
+* 可以捕获当前作用域的值
+* 而对于函数来说，就算你把函数定义在 `main` 函数体中，它也不能访问 函数体外的变量
+
+### 2）对内存的影响
+
+* 当闭包从环境中捕获一个值时，会分配内存去存储这些值。对于有些场景来说，这种额外的内存分配会成为一种负担
+
+* 三种 `Fn`特征
+
+  * 闭包捕获变量有三种途径，恰好对应函数参数的三种传入方式：<u>转移所有权、可变借用、不可变借用</u>
+
+    * 相应的 `Fn` 特征也有三种
+
+  * `FnOnce`
+
+    * 消费从周围作用域捕获的变量 (拿走被捕获变量的所有权)
+
+      * 为了消费捕获到的变量，闭包必须<u>获取其所有权</u>并在**<u>定义闭包</u>时将其<u>移动进闭包</u>**
+
+    * `Once` 顾名思义，说明该闭包只能运行一次
+
+      * 显然不能对已失去所有权的闭包变量进行二次调用
+
+      ```rust
+      fn fn_once<F>(func: F)
+      where
+          F: FnOnce(usize) -> bool,
+      {
+          println!("{}", func(3));
+          println!("{}", func(4)); //Error!
+      }
+      
+      fn main() {
+          let x = vec![1, 2, 3];
+          fn_once(|z|{z == x.len()})
+      }
+      ```
+
+    * 若还实现了 `copy` 特征，调用闭包时，将使用的是变量的拷贝。这时不会发生所有权转移
+
+    * 如果你想强制闭包取得捕获变量的所有权，可以在参数列表前添加 `move` 关键字。
+
+      * 通常用于闭包的生命周期大于捕获变量的生命周期时
+
+      ```rust
+      use std::thread;
+      let v = vec![1, 2, 3];
+      let handle = thread::spawn(move || {
+          println!("Here's a vector: {:?}", v);
+      });
+      ```
+
+  * `FnMut`
+
+    * 以可变借用的方式捕获环境中的值。
+
+      * 想要在闭包内部捕获可变借用，也需要把该<u>闭包声明为可变类型</u>
+
+      ```rust
+      fn main() {
+          let mut s = String::new();
+      
+          let mut update_string =  |str| s.push_str(str);
+          update_string("hello");
+      
+          println!("{:?}",s);
+      }
+      ```
+
+  * `Fn`
+
+    * 以不可变借用的方式捕获环境中的值
+
+      ```rust
+      fn main() {
+          let s = "hello, ".to_string();
+      
+          let update_string =  |str| println!("{},{}",s,str);
+      
+          exec(update_string);
+      
+          println!("{:?}",s);
+      }
+      
+      fn exec<'a, F: Fn(String) -> ()>(f: F)  {
+          f("world".to_string())
+      }
+      ```
+
+* `move` 和 `Fn`
+
+  * 实际上，一个闭包实现了哪种 Fn 特征，取决于<u>该闭包如何**使用**被捕获的变量</u>，而不是取决于闭包如何捕获它们
+
+    * 使用了 `move` 的闭包依然可能实现了 `Fn` 或 `FnMut` 特征
+
+    * `move` 本身强调的就是后者，闭包如何捕获变量
+
+      ```rust
+      fn main() {
+          let s = String::new();
+      
+          let update_string =  move || println!("{}",s);
+      
+          exec(update_string);
+      }
+      
+      fn exec<F: FnOnce()>(f: F)  {
+          f()
+      }
+      ```
+
+      * 上面的闭包中使用了 `move` 关键字，所以闭包捕获了它
+      * 但是由于闭包对 `s` 的使用仅仅是不可变借用，因此该闭包实际上**还**实现了 `Fn` 特征
+
+* 三种 `fn` 的关系
+
+  * 所有的闭包都自动实现了 `FnOnce` 特征，因此任何一个闭包都至少可以被调用一次
+
+  * <u>没有移出所捕获变量的所有权</u>的闭包自动实现了 `FnMut` 特征
+
+  * <u>不</u>需要对捕获变量<u>进行改变</u>的闭包自动实现了 `Fn` 特征
+
+  * 例1：
+
+    ```rust
+    fn main() {
+        let s = String::new();
+    
+        let update_string =  || println!("{}",s);
+    
+        exec(update_string);
+        exec1(update_string);
+        exec2(update_string);
+    }
+    
+    fn exec<F: FnOnce()>(f: F)  {
+        f()
+    }
+    
+    fn exec1<F: FnMut()>(mut f: F)  {
+        f()
+    }
+    
+    fn exec2<F: Fn()>(f: F)  {
+        f()
+    }
+    ```
+
+  * 例2
+
+    * 报错：因为闭包从捕获环境中移出了变量 `s` 的所有权，因此这个闭包仅自动实现了 `FnOnce`
+
+    ```rust
+    fn main() {
+        let mut s = String::new();
+    
+        let update_string = |str| -> String {s.push_str(str); s };
+    
+        exec(update_string);
+    }
+    
+    fn exec<'a, F: FnMut(&'a str) -> String>(mut f: F) {
+        f("hello");
+    }
+    ```
+
+* 在实际项目中，**建议先使用 `Fn` 特征** (最严格)，然后编译器会告诉你正误以及该如何选择
+
+## 6. 闭包作为函数返回值
+
+* 注意：即使签名一样的闭包，每个实例都对应不同类型
+
+  * 所以使用 `Box` 方式，声明返回值类型
+
+  ```rust
+  fn factory(x:i32) -> Box<dyn Fn(i32) -> i32> {
+      let num = 5;
+  
+      if x > 1{
+          Box::new(move |x| x + num)
+      } else {
+          Box::new(move |x| x - num)
+      }
+  }
+  ```
+
+# 18. 迭代器
+
+## 1. 引入：for与迭代器
+
+* 严格来说，Rust 中的 `for` 循环是编译器提供的语法糖，最终还是对迭代器中的元素进行遍历
+
+  ```rust
+  let arr = [1, 2, 3];
+  for v in arr {
+      println!("{}",v);
+  }
+  ```
+
+  * 数组实现了 `IntoIterator` 特征，Rust 通过 `for` 语法糖，自动把实现了该特征的数组类型转换为迭代器。最终让我们可以直接对一个数组进行迭代
+
+## 2. 惰性初始化
+
+* Rust 中，迭代器是惰性的
+  * 如果不使用它，将不会发生任何迭代行为
+* 确保了<u>创建迭代器</u>，不会有任何额外的性能损耗，其中的元素也不会被消耗。只有使用到该迭代器的时候，一切才开始
+
+## 3. `.next()` 方法
+
+* **`Iterator` 特征** 中最主要的一个方法。控制如何从集合中取出下一个值。
+
+  * 返回值为`Option` 类型
+  * 顺序取出，且对**迭代器的遍历是消耗性的**，每次都会“消耗”它一个元素。
+    * 最终迭代器中将没有任何元素，返回 `None`
+
+  ```rust
+  pub trait Iterator {
+      type Item;
+  
+      fn next(&mut self) -> Option<Self::Item>;
+  
+      // 省略其余有默认实现的方法
+  }
+  ```
+
+* 例：手动迭代实现
+
+  ```rust
+  fn main() {
+      let arr = [1, 2, 3];
+      let mut arr_iter = arr.into_iter();
+  
+      assert_eq!(arr_iter.next(), Some(1));
+      assert_eq!(arr_iter.next(), Some(2));
+      assert_eq!(arr_iter.next(), Some(3));
+      assert_eq!(arr_iter.next(), None);
+  }
+  ```
+
+  * 手动迭代，必须将迭代器声明为 `mut` 可变，因为调用 `next` 会改变迭代器其中的状态数据（当前遍历的位置等）
+    *  `for` 循环去迭代则无需标注 `mut`，因为它会帮我们<u>自动完成</u>
+
+## 4. `IntoIterator` 特征
+
+* 由于 `Vec` 动态数组实现了 `IntoIterator` 特征，因此可以通过 `.into_iter()` 方法将其转换为迭代器
+
+* 实际上，<u>迭代器自身</u>也实现了 `IntoIterator`。标准库中早已包含
+
+  ```rust
+  impl<I: Iterator> IntoIterator for I {
+      type Item = I::Item;
+      type IntoIter = I;
+  
+      #[inline]
+      fn into_iter(self) -> I {
+          self
+      }
+  }
+  ```
+
+  * 最终你完全可以写出这样的奇怪代码
+
+    ```rust
+    fn main() {
+        let values = vec![1, 2, 3];
+    
+        for v in values.into_iter().into_iter().into_iter() {
+            println!("{}",v)
+        }
+    }
+    ```
+
+* `.into_iter()`, `.iter()`, `.iter_mut()` 创建迭代器
+
+  * 区别: 在调用 `.next()` 时的返回值
+
+    * `.into_iter()` 会夺走原数据所有权
+    * `.iter()` 是借用
+      * `.iter()` 方法实现的迭代器，调用 `next` 方法返回的类型是 `Some(&T)`
+    * `.iter_mut()` 是可变借用
+      * `.iter_mut()` 方法实现的迭代器，调用 `next` 方法返回的类型是 `Some(&mut T)`
+
+  * 规律
+
+    * `into_` 之类的，都是拿走所有权，`_mut` 之类的都是可变借用，剩下的就是不可变借用
+
+    ```rust
+    fn main() {
+        let values = vec![1, 2, 3];
+    
+        for v in values.into_iter() {
+            println!("{}", v)
+        }
+        // 下面的代码将报错，因为 values 的所有权在上面 `for` 循环中已经被转移走
+        // println!("{:?}",values);
+    
+        let values = vec![1, 2, 3];
+        let _values_iter = values.iter();
+        // 不会报错，因为 values_iter 只是借用了 values 中的元素
+        println!("{:?}", values);
+    
+        let mut values = vec![1, 2, 3];
+        // 对 values 中的元素进行可变借用
+        let mut values_iter_mut = values.iter_mut();
+        // 取出第一个元素，并修改为0
+        if let Some(v) = values_iter_mut.next() {
+            *v = 0;
+        }
+        // 输出[0, 2, 3]
+        println!("{:?}", values);
+    }
+    ```
+
+* `Iterator` 和 `IntoIterator` 的区别
+
+  * `Iterator` 就是<u>迭代器特征</u>，只有实现了它才能称为迭代器，才能调用 `next`
+  * `IntoIterator` 强调的是某一个类型如果实现了该特征，它可以通过 `into_iter`，`iter` 等方法<u>变成一个迭代器</u>
+
+## 5. 消费者与适配器
+
+* 消费者适配器
+
+  * 含义
+
+    * 只要<u>迭代器上的某个方法 `A`</u> 在其内部<u>调用了 `next` 方法</u>，那么 `A` 就被称为**消费者适配器**
+      * 调用 `A`，会消费掉迭代器，然后返回一个具体的值
+
+  * 例：`sum` 方法
+
+    * 拿走迭代器的所有权，然后通过不断调用 `next` 方法对里面的元素进行求和
+
+    ```rust
+    fn main() {
+        let v1 = vec![1, 2, 3];
+    
+        let v1_iter = v1.iter();
+    
+        let total: i32 = v1_iter.sum();
+    
+        assert_eq!(total, 6);
+    
+        // v1_iter 是借用了 v1，因此 v1 可以照常使用
+        println!("{:?}",v1);
+    
+        // 以下代码会报错，因为 `sum` 拿到了迭代器 `v1_iter` 的所有权
+        // println!("{:?}",v1_iter);
+    }
+    ```
+
+* 迭代器适配器
+
+  * 含义：
+
+    * 会返回一个<u>新的迭代器</u>
+    * 是实现链式方法调用的关键：`v.iter().map().filter()...`
+
+  * 与消费者适配器不同，迭代器适配器是惰性的
+
+    * 需要一个<u>消费者适配器来收尾</u>，最终将迭代器转换成一个具体的值
+
+  * 例：`map` 方法
+
+    * `map` 会对迭代器中的每一个值进行一系列操作，然后把该值转换成另外一个新值
+      * 该操作是通过闭包来指定
+
+    ```rust
+    let v1: Vec<i32> = vec![1, 2, 3];
+    
+    v1.iter().map(|x| x + 1);
+    ```
+
+  * `.collect()` 方法
+
+    * 一个消费者适配器
+
+    * 作用：将一个迭代器中的元素收集到指定类型中
+
+      * 需要指定接受变量的类型。这里我们为 `v2` 标注了 `Vec<_>` 类型，就是为了告诉 `collect`：请把迭代器中的元素消费掉，然后把值收集成 `Vec<_>` 类型
+        * 使用 `_`，因为编译器会帮我们自动推导
+
+    * 例：收集成 `Vec<T>`
+
+      ```rust
+      let v1: Vec<i32> = vec![1, 2, 3];
+      
+      let v2: Vec<_> = v1.iter().map(|x| x + 1).collect();
+      
+      assert_eq!(v2, vec![2, 3, 4]);
+      ```
+
+    * 例：收集成 `HashMap<K,V>`
+
+      ```rust
+      use std::collections::HashMap;
+      fn main() {
+          let names = ["sunface", "sunfei"];
+          let ages = [18, 18];
+          let folks: HashMap<_, _> = names.into_iter().zip(ages.into_iter()).collect();
+      
+          println!("{:?}",folks);
+      }
+      ```
+
+      * `zip` 是一个迭代器适配器
+        * 将两个迭代器的内容压缩到一起，形成 `Iterator<Item=(ValueFromA, ValueFromB)>` 的新迭代器
+
+* 闭包作为适配器参数
+
+  * 例：
+
+  ```rust
+  struct Shoe {
+      size: u32,
+      style: String,
+  }
+  
+  fn shoes_in_size(shoes: Vec<Shoe>, shoe_size: u32) -> Vec<Shoe> {
+      shoes.into_iter().filter(|s| s.size == shoe_size).collect()
+  }
+  ```
+
+  * `filter` 是迭代器适配器，用于对迭代器中的每个值进行"过滤"
+    * 用闭包作为参数
+      *  `s` 是来自迭代器中的值
+      *  然后使用 `s` 跟外部环境中的 `shoe_size` 进行比较，若相等，则在迭代器中保留 `s` 值，若不相等，则从迭代器中剔除 `s` 值
+    * 最终通过 `collect` 收集为 `Vec<Shoe>` 类型
+
+## 6. 自定义实现 Iterator 特征
+
+* 通过<u>自定义类型</u>实现 `Iterator` 特征，创建自己的迭代器
+
+* 例
+
+  * 首先，创建一个计数器类型
+
+    ```rust
+    struct Counter {
+        count: u32,
+    }
+    
+    impl Counter {
+        fn new() -> Counter {
+            Counter { count: 0 }
+        }
+    }
+    ```
+
+  * 为计数器实现 `Iterator` 特征
+
+    ```rust
+    impl Iterator for Counter {
+        type Item = u32;
+    
+        fn next(&mut self) -> Option<Self::Item> {
+            if self.count < 5 {
+                self.count += 1;
+                Some(self.count)
+            } else {
+                None
+            }
+        }
+    }
+    ```
+
+  * 最后，使用我们新建的 `Counter` 进行迭代
+
+    ```rust
+    let mut counter = Counter::new();
+    
+    assert_eq!(counter.next(), Some(1));
+    assert_eq!(counter.next(), Some(2));
+    assert_eq!(counter.next(), Some(3));
+    assert_eq!(counter.next(), Some(4));
+    assert_eq!(counter.next(), Some(5));
+    assert_eq!(counter.next(), None);
+    ```
+
+* 实现 Iterator 特征的其它方法
+
+  * `Iterator` 特征中，除了 `next` 方法需要我们手动实现，其它方法都具有默认实现。而且这些默认实现的方法其实都是基于 `next` 方法实现的
+
+  * `zip` 
+
+    * 把两个迭代器合并成一个迭代器
+    * 新迭代器中，每个元素都是一个<u>元组</u>，由之前两个迭代器的元素组成
+      * 将**形如** `[1, 2, 3, 4, 5]` 和 `[2, 3, 4, 5]` 的迭代器合并后，新的迭代器形如 `[(1, 2),(2, 3),(3, 4),(4, 5)]`
+
+  * `map`
+
+    * 接受参数为闭包。
+    * 将迭代器中的值经过映射后，转换成新的值
+
+  * `filter`
+
+    * 接受参数为闭包。
+    * 对迭代器中的元素进行过滤，若闭包返回 `true` 则保留元素。反之剔除
+
+  * `sum`
+
+    * 消费者适配器，对迭代器中的所有元素求和，最终返回一个值
+
+    ```rust
+    let sum: u32 = Counter::new()
+        .zip(Counter::new().skip(1))
+        .map(|(a, b)| a * b)
+        .filter(|x| x % 3 == 0)
+        .sum();
+    assert_eq!(18, sum);
+    ```
+
+  * `enumerate`
+
+    * 迭代器适配器
+
+    * 该方法产生一个新的迭代器，其中每个元素均是元组 `(索引，值)`
+
+      ```rust
+      let v = vec![1u64, 2, 3, 4, 5, 6];
+      for (i,v) in v.iter().enumerate() {
+          println!("第{}个值是{}",i,v)
+      }
+      ```
+
+## 7. 迭代器的性能
+
+* 用下标访问的 for 循环，和迭代器 `iterator` ，完成同样的求和任务的性能对比。迭代器要更快一点
+* 因为迭代器是 Rust 的 **零成本抽象**之一
+  * 抽象并不会引入运行时开销：没有使用时，你不必为其买单。 更进一步说，需要使用时，你也无法写出更优的代码了
+* 总之，迭代器是 Rust 受函数式语言启发而提供的高级语言特性，可以写出更加简洁、逻辑清晰的代码
+  * 编译器还可以通过循环展开（Unrolling）、向量化、消除边界检查等优化手段，使得迭代器和 `for` 循环都有极为高效的执行效率
 

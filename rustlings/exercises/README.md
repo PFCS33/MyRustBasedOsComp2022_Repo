@@ -18,7 +18,7 @@
 | generics               | §10                 |*
 | traits                 | §10.2               |*
 | tests                  | §11.1               |
-| lifetimes              | §10.3               |
+| lifetimes              | §10.3               |*
 | standard_library_types | §13.2, §15.1, §16.3 |
 | threads                | §16.1, §16.2, §16.3 |
 | macros                 | §19.6               |
